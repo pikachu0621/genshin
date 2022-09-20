@@ -11,6 +11,6 @@
 其他
 ---
 >ds密码：9nQiU3AV0rJSIBWgdynfoGMGKaklfbM7   </br>
-ds密码来自：https://github.com/AMEKENN/miHoYoSign，https://github.com/Womsxd/AutoMihoyoBBS
+>ds密码来自：[https://github.com/AMEKENN/miHoYoSign](https://github.com/AMEKENN/miHoYoSign), [https://github.com/Womsxd/AutoMihoyoBBS](https://github.com/Womsxd/AutoMihoyoBBS)
 
 
