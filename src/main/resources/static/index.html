@@ -1,0 +1,313 @@
+<!--github: https://github.com/pikachu0621  作者微信：Pikachu_WeChat -->
+<!DOCTYPE html>
+<html lang="cn" xmlns:v-on="http://www.w3.org/1999/xhtml">
+<head>
+	<title>米游社自动签到</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" type="text/css" href="css/element-ui/index.css">
+	<link rel="stylesheet" type="text/css" href="css/element-ui/display.css">
+	<link rel="stylesheet" type="text/css" href="css/main.css">
+	
+
+</head>
+<body>
+<div id="root">
+	<!--添加角色-->
+	<el-dialog
+			title="添加"
+			:visible.sync="dialogAddUserVisible"
+			:close-on-click-modal="false"
+			:width="dialogWidth + 'vw'"
+			:append-to-body='true'>
+		<el-form label-position="top" label-width="80px" :model="formAddUser">
+			<el-form-item label="cookie">
+				<el-input v-model="formAddUser.cookie"
+						  clearable></el-input>
+			</el-form-item>
+			
+			<el-form-item label="保护密码(可空)">
+				<el-tooltip effect="dark" content="设置保护密码后，当更新、查询、解绑时需要验证密码。防止他人恶意更改！" placement="top-start">
+					<el-input v-model="formAddUser.password"
+							  maxlength="12"
+							  clearable
+							  show-word-limit></el-input>
+				</el-tooltip>
+			</el-form-item>
+		</el-form>
+		
+		<span slot="footer" class="dialog-footer">
+            <el-button @click="dialogAddUserVisible = false">取 消</el-button>
+            <el-button type="primary"
+					   :loading="dialogAddLoading"
+					   @click="addCookieEfficient">确 定</el-button>
+        </span>
+	</el-dialog>
+	
+	<!--添加角色成功-->
+	<el-dialog
+			title="添加完成"
+			:visible.sync="dialogAddSuccessVisible"
+			:width="dialogWidth + 'vw'"
+			:close-on-click-modal="false"
+			:append-to-body='true'>
+        <span style="margin-bottom: 20px;display: block">
+            1. 已将你的账号添加到服务器中，<el-tag size="mini">排行: {{gameData.ranking}}</el-tag>。<br><br>
+            2. 每日签到时间在凌晨 00:30 开始，具体签到时间根据用户数量决定。<br><br>
+            3. 我们只储存你的米游社cookie，<span style="color: #e67463">并不能且不会</span>利用cookie登录你的游戏。<br><br>
+            4. 如果你退出米游社登录，将导致<span style="color: #e67463">cookie失效</span>，自动签到将终止，直到你更新cookie。<br><br>
+            5. <s>此程序仅供学习与交流，禁止传播商用。</s><br><br>
+            6. 有问题联系: QQ2825436553
+        </span>
+		<el-tag>uid: {{gameData.game_uid}}</el-tag>
+		<el-tag>昵称: {{gameData.nickname}}</el-tag>
+		<el-tag>等级: {{gameData.level}}</el-tag>
+		<el-tag>区服: {{gameData.region_name}}</el-tag>
+		
+		<span slot="footer" class="dialog-footer">
+            <el-button type="primary"
+					   @click="dialogAddSuccessVisible = false">我知道了</el-button>
+        </span>
+	</el-dialog>
+	
+	<!--身份验证-->
+	<el-dialog
+			title="请键入密码"
+			:visible.sync="dialogPwsVisible"
+			:width="dialogWidth + 'vw'"
+			:close-on-click-modal="false"
+			:append-to-body='true'>
+		<el-input v-model="dialogPwsInputPws"
+				  maxlength="12"
+				  clearable
+				  show-word-limit
+				  placeholder="此uid设置了保护, 请验证身份！">
+		</el-input>
+		<span slot="footer" class="dialog-footer">
+            <el-button @click="dialogPwsVisible = false">取 消</el-button>
+            <el-button type="primary"
+					   :loading="dialogPwsLoading"
+					   @click="onPwsClickChoose">确 定</el-button>
+        </span>
+	</el-dialog>
+	
+	<!--更新数据-->
+	<el-dialog
+			title="更新数据"
+			:visible.sync="dialogReplaceVisible"
+			:width="dialogWidth + 'vw'"
+			:close-on-click-modal="false"
+			:append-to-body='true'>
+		<el-form label-position="top" label-width="80px" :model="formReplaceUser">
+			<el-form-item label="cookie (空为不修改， 如果你只想修改密码这项可以为空)">
+				<el-input v-model="formReplaceUser.cookie"
+						  clearable>
+				</el-input>
+			</el-form-item>
+			
+			<el-form-item label="保护密码 (空为去除密码保护 ps:不建议为空)">
+				<el-tooltip effect="dark" content="设置保护密码后，当更新、查询、解绑时需要验证密码。防止他人恶意更改！" placement="top-start">
+					<el-input v-model="formReplaceUser.password"
+							  maxlength="12"
+							  clearable
+							  show-word-limit>
+					</el-input>
+				</el-tooltip>
+			</el-form-item>
+		</el-form>
+		
+		<span slot="footer" class="dialog-footer">
+            <el-button @click="dialogReplaceVisible = false">取 消</el-button>
+            <el-button type="primary"
+					   :loading="dialogReplaceLoading"
+					   @click="replaceUserData">确 定</el-button>
+        </span>
+	</el-dialog>
+	
+	<!--解绑确认-->
+	<el-dialog
+			title="是否解绑"
+			:visible.sync="dialogUnbindVisible"
+			:width="dialogWidth + 'vw'"
+			:close-on-click-modal="false"
+			:append-to-body='true'>
+        <span style="margin-bottom: 20px;display: block">
+            解绑后你的数据将全部删除，并且不保留。<br><br>
+            <el-tag>注意：此操作不可逆，是否继续</el-tag>
+        </span>
+		<span slot="footer" class="dialog-footer">
+            <el-button @click="dialogUnbindVisible = false">取消</el-button>
+            <el-button type="primary"
+					   :loading="dialogUnbindLoading"
+					   @click="sendUnbindUser">确定</el-button>
+        </span>
+	</el-dialog>
+	
+	
+	<!--查询数据-->
+	<el-dialog
+			title="查询"
+			:visible.sync="dialogInquireVisible"
+			:width="dialogWidth + 5  + 'vw'"
+			:append-to-body='false'
+			:close-on-click-modal="false">
+		      <el-radio-group v-model="radio" size="mini" v-on:change="inquireUserRecordInfo(radio)">
+				  <el-radio-button label="true">正序</el-radio-button>
+				  <el-radio-button label="false">倒序</el-radio-button>
+			  </el-radio-group>
+		
+		<!--     <el-checkbox-group v-model="checkedCities" style="margin-top: 20px">
+				 <el-checkbox label="失败的"></el-checkbox>
+				 <el-checkbox label="成功的"></el-checkbox>
+				 <el-checkbox label="原石"></el-checkbox>
+				 <el-checkbox label="金币"></el-checkbox>
+				 <el-checkbox label="默认" disabled></el-checkbox>
+			 </el-checkbox-group>-->
+		
+		
+		<el-table style="margin-top: 20px"
+				  :data="tableData"
+				  stripe
+				  border
+				  highlight-current-row
+				  height="50vh">
+			<el-table-column prop="time" label="日期"></el-table-column>
+			<el-table-column prop="name" label="名称"></el-table-column>
+			<el-table-column prop="quantity" label="数量"></el-table-column>
+			<el-table-column prop="errorMsg" label="提示"></el-table-column>
+			<el-table-column prop="isError" label="是否成功" fixed="right"></el-table-column>
+		</el-table>
+		<span>共 {{tableData.length}} 条数据, 成功 {{successNum}} 条, 失败 {{tableData.length - successNum}} 条</span>
+	</el-dialog>
+	
+	
+	<main class="mui-content">
+		<div class="quadrilateral"></div>
+		<h2 id="title_id" class="title text-center animated bounce">米游社自动签到</h2>
+		<div class="arrow animated bounce" v-on:click="autoScroll()" v-on:mouseover="autoScroll()"></div>
+	</main>
+	
+	<footer class="mui-content">
+		<div id="footer_root">
+			<el-row>
+				<el-col :span="14"
+						:xl="14"
+						:lg="14"
+						:md="14"
+						:sm="24"
+						:xs="24">
+					<el-input v-model="inputUid"
+							  placeholder="请输入uid"
+							  maxlength="9"
+							  clearable
+							  show-word-limit>
+					</el-input>
+				</el-col>
+				<el-col :span="10"
+						:xl="10"
+						:lg="10"
+						:md="10"
+						:sm="24"
+						:xs="24">
+					<el-button-group>
+						<el-button
+								v-on:click="addUser"
+								type="primary"
+								:loading="addLoading"
+								icon="el-icon-position">
+							{{addStr}}
+						</el-button>
+						<el-button
+								v-on:click="replaceUser"
+								type="primary"
+								:loading="replaceLoading"
+								icon="el-icon-refresh-left">
+							{{replaceStr}}
+						</el-button>
+						<el-button
+								v-on:click="inquireUser"
+								type="primary"
+								:loading="inquireLoading"
+								icon="el-icon-search">
+							{{inquireStr}}
+						</el-button>
+						<el-button
+								v-on:click="unbindUser"
+								type="primary"
+								:loading="unbindLoading"
+								icon="el-icon-delete">
+							{{unbindStr}}
+						</el-button>
+					</el-button-group>
+				
+				</el-col>
+				
+				<el-col :span="24" style="margin-top: 10px; overflow-y: visible; overflow-x: hidden;">
+					<el-row :gutter="20">
+						<el-col :span="6"
+								:xl="6"
+								:lg="8"
+								:md="8"
+								:sm="24"
+								:xs="24"
+								style="margin-top: 20px">
+							<el-card class="el-card-layout" shadow="hover">
+								<b>cookie获取方式</b><br><br>
+								pc端获取，Android获取，ios端获取（目前还在编写中）。
+							</el-card>
+						</el-col>
+						<el-col :span="6"
+								:xl="6"
+								:lg="8"
+								:md="8"
+								:sm="24"
+								:xs="24"
+								class="hidden-sm-and-down"
+								style="margin-top: 20px">
+							<el-card shadow="hover" class="el-card-layout">
+								<b>3.0辅助（pc端）</b><br><br>
+								github 开源免费原神辅助-(Akebi-GC)， 如果你进入不了github，可以在这里下载。
+							</el-card>
+						</el-col>
+						<el-col :span="6"
+								:xl="6"
+								:lg="8"
+								:md="8"
+								:sm="24"
+								:xs="24"
+								class="hidden-sm-and-down"
+								style="margin-top: 20px">
+							<el-card shadow="hover" class="el-card-layout">
+								<b>下载Android端</b><br><br>
+								Android 端会自动获取你的cookie，并且提交到服务器进行每日签到。
+							</el-card>
+						</el-col>
+						<el-col :span="6"
+								:xl="6"
+								:lg="8"
+								:md="8"
+								:sm="24"
+								:xs="24"
+								style="margin-top: 20px">
+							<el-card shadow="hover" class="el-card-layout">
+								<b>交流群</b><br><br>
+								xxxx-xxxx-xxx，作者：pkpk。
+							</el-card>
+						</el-col>
+					</el-row>
+				</el-col>
+			</el-row>
+		</div>
+	</footer>
+</div>
+<script src="js/vue/2.4.2-vue.min.js"></script>
+<script src="js/vue/vue-resource.min.js"></script>
+<script src="js/element-ui/index.js"></script>
+
+<!--<script src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
+<script src="https://cdn.staticfile.org/vue-resource/1.5.1/vue-resource.min.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>-->
+<script src="js/main.js"></script>
+</body>
+
+</html>

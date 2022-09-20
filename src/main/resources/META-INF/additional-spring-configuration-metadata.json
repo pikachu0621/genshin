@@ -1,0 +1,8 @@
+{
+  "properties": [
+    {
+      "name": "config-ds.password",
+      "type": "java.lang.String",
+      "description": "米游社ds 密码"
+  }
+] }
