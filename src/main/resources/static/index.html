@@ -8,7 +8,7 @@
 	<link rel="stylesheet" type="text/css" href="css/element-ui/index.css">
 	<link rel="stylesheet" type="text/css" href="css/element-ui/display.css">
 	<link rel="stylesheet" type="text/css" href="css/main.css">
-	
+
 
 </head>
 <body>
@@ -44,7 +44,7 @@
         </span>
 	</el-dialog>
 	
-	<!--添加角色成功-->
+	<!--添加角色成功 -->
 	<el-dialog
 			title="添加完成"
 			:visible.sync="dialogAddSuccessVisible"
@@ -52,19 +52,26 @@
 			:close-on-click-modal="false"
 			:append-to-body='true'>
         <span style="margin-bottom: 20px;display: block">
-            1. 已将你的账号添加到服务器中，<el-tag size="mini">排行: {{gameData.ranking}}</el-tag>。<br><br>
+            1. 已将你的账号添加到服务器中，<el-tag size="mini">签到排名: {{gameData.ranking}}</el-tag>。<br><br>
             2. 每日签到时间在凌晨 00:30 开始，具体签到时间根据用户数量决定。<br><br>
-            3. 我们只储存你的米游社cookie，<span style="color: #e67463">并不能且不会</span>利用cookie登录你的游戏。<br><br>
-            4. 如果你退出米游社登录，将导致<span style="color: #e67463">cookie失效</span>，自动签到将终止，直到你更新cookie。<br><br>
-            5. <s>此程序仅供学习与交流，禁止传播商用。</s><br><br>
-            6. 有问题联系: QQ2825436553
+            3. 如果你退出米游社登录，将导致<span style="color: #e67463">cookie失效</span>，自动签到将终止，直到你更新cookie。<br><br>
+            4. <s>此程序仅供学习与交流，禁止传播和商用。</s><br><br>
+            5. 有问题联系: QQ2825436553
         </span>
 		<el-tag>uid: {{gameData.game_uid}}</el-tag>
 		<el-tag>昵称: {{gameData.nickname}}</el-tag>
 		<el-tag>等级: {{gameData.level}}</el-tag>
 		<el-tag>区服: {{gameData.region_name}}</el-tag>
 		
+		
 		<span slot="footer" class="dialog-footer">
+			<el-tag :type="gameData.addResults['game_sign'].isOk ? 'success' : 'info'">
+				{{gameData.addResults['game_sign'].msg}}
+			</el-tag>
+			<el-tag :type="gameData.addResults['bbs_sign'].isOk ? 'success' : 'info'">
+				{{gameData.addResults['bbs_sign'].msg}}
+			</el-tag>
+			<br><br>
             <el-button type="primary"
 					   @click="dialogAddSuccessVisible = false">我知道了</el-button>
         </span>
@@ -151,10 +158,10 @@
 			:width="dialogWidth + 5  + 'vw'"
 			:append-to-body='false'
 			:close-on-click-modal="false">
-		      <el-radio-group v-model="radio" size="mini" v-on:change="inquireUserRecordInfo(radio)">
-				  <el-radio-button label="true">正序</el-radio-button>
-				  <el-radio-button label="false">倒序</el-radio-button>
-			  </el-radio-group>
+		<el-radio-group v-model="radio" size="mini" v-on:change="inquireUserRecordInfo(radio)">
+			<el-radio-button label="true">正序</el-radio-button>
+			<el-radio-button label="false">倒序</el-radio-button>
+		</el-radio-group>
 		
 		<!--     <el-checkbox-group v-model="checkedCities" style="margin-top: 20px">
 				 <el-checkbox label="失败的"></el-checkbox>
@@ -172,12 +179,15 @@
 				  highlight-current-row
 				  height="50vh">
 			<el-table-column prop="time" label="日期"></el-table-column>
-			<el-table-column prop="name" label="名称"></el-table-column>
-			<el-table-column prop="quantity" label="数量"></el-table-column>
-			<el-table-column prop="errorMsg" label="提示"></el-table-column>
-			<el-table-column prop="isError" label="是否成功" fixed="right"></el-table-column>
+			<el-table-column prop="game" label="签到任务"></el-table-column>
+			<el-table-column prop="bbs" label="米游币任务"></el-table-column>
+			<el-table-column prop="msg" label="日志"></el-table-column>
 		</el-table>
-		<span>共 {{tableData.length}} 条数据, 成功 {{successNum}} 条, 失败 {{tableData.length - successNum}} 条</span>
+		<span v-show="tableData.length > 0">| 共 {{tableData.length}} 条数据 |
+			成功 {{successNum}} 条 |
+			部分成功 {{tableData.length - successNum - errorNum}} 条 |
+			失败 {{errorNum}} 条 |
+		</span>
 	</el-dialog>
 	
 	
@@ -300,13 +310,13 @@
 		</div>
 	</footer>
 </div>
-<script src="js/vue/2.4.2-vue.min.js"></script>
+<!--<script src="js/vue/2.4.2-vue.min.js"></script>
 <script src="js/vue/vue-resource.min.js"></script>
-<script src="js/element-ui/index.js"></script>
+<script src="js/element-ui/index.js"></script>-->
 
-<!--<script src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
+<script src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
 <script src="https://cdn.staticfile.org/vue-resource/1.5.1/vue-resource.min.js"></script>
-<script src="https://unpkg.com/element-ui/lib/index.js"></script>-->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
 <script src="js/main.js"></script>
 </body>
 

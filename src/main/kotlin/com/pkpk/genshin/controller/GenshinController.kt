@@ -96,9 +96,11 @@ class GenshinController {
     @ResponseBody
     fun replaceUser(
         @RequestParam("uid", required = false) uid: String?,
-        @RequestParam("cookie", required = false) cookie: String?,
-        @RequestParam("new-password", required = false) newPassword: String?,  // 空为取消密码
-        @RequestParam("old-password", required = false) oldPassword: String?  // 此密码为鉴权密码
+        @RequestParam("cookie_token", required = false) cToken: String?,
+        // @RequestParam("account_id", required = false) accountId: String?,       // 米游社 id    不会变
+        @RequestParam("login_ticket", required = false) loginTicket: String?,
+        @RequestParam("new_password", required = false) newPassword: String?,     // 空为取消密码
+        @RequestParam("old_password", required = false) oldPassword: String?      // 此密码为鉴权密码
     ): Result {
         log.info("api - [replace-user] $uid")
         if (AskUtils.isFieldEmpty(uid)) {
@@ -111,7 +113,6 @@ class GenshinController {
             return Result.err("密码过长", ERROR_PARAMETER)
         }
         userMapper?.let {
-
             if (!SqlUtils.isdUserExist(it, uid)) {
                 return Result.err("用户不存在", ERROR_USER_EXIST)
             }
@@ -122,12 +123,10 @@ class GenshinController {
                 }
             }
 
-            val sqlCookieToken: String? = AskUtils.isStrCookieEfficient(it, cookie)
-            if (cookie != null && cookie.isNotEmpty()) {
+            val sqlCookieToken: String? = AskUtils.isStrCookieTokenEfficient(it, cToken)
+            if (cToken != null && cToken.isNotEmpty()) {
                 sqlCookieToken ?: return Result.err("cookie 无效", ERROR_COOKIE)
-                if (sqlCookieToken == "1") {
-                    return Result.err("cookie 重复不用修改", ERROR_COOKIE)
-                }
+                if (sqlCookieToken == "1") return Result.err("cookie 未过期不用修改", ERROR_COOKIE)
             } else {
                 gameData.password = newPassword
                 it.updateById(gameData)
@@ -135,8 +134,14 @@ class GenshinController {
             }
 
 
-            val uuid: String = AskUtils.getGameCookieUUid(cookie) ?: UUID.randomUUID().toString()
-            val userInfo: JsonUserInfo? = AskUtils.getUserInfo(AskInfoData(cookie, uuid))
+            // val uuid: String = AskUtils.getGameCookieUUid(cookie) ?: UUID.randomUUID().toString()
+            val userInfo: JsonMiHoYoBack<JsonUserData>? = AskUtils.getUserInfo(
+                AskInfoData(
+                    gameData.uuid,
+                    gameData.accountId,
+                    cookieToken = cToken
+                )
+            )
             log.info("$userInfo")
 
             userInfo?.let { ud ->
@@ -146,21 +151,32 @@ class GenshinController {
                 // 有数据
                 val game = ud.data!!.list[0]
                 if (!SqlUtils.isdUserExist(it, game.game_uid)) {
-                    return Result.err("cookie uid用户已存在", ERROR_USER_EXIST)
+                    return Result.err("cookie 对应的uid用户已存在", ERROR_USER_EXIST)
                 }
+
+                val sToken: String? = loginTicket?.let { login_ticket ->
+                    AskUtils.getBbsSToken(login_ticket, gameData.accountId)
+                }
+
                 gameData.apply {
-                    this.cookie = cookie
-                    this.region = game.region
-                    this.uuid = uuid
-                    this.cookieToken = sqlCookieToken
-                    this.password = newPassword
-                    this.isCookieAvailable = true
+                    region = game.region
+                    cookieToken = cToken
+                    this.sToken = sToken ?: this.sToken
+                    password = newPassword
+                    isCookieAvailable = true
                 }
                 it.updateById(gameData)
                 // 排行
                 game.ranking = it.queryByIdRanking(gameData.id!!).rank
                 log.info("排行 ${game.ranking}")
-                return Result.ok(game, "更新成功: <${game.nickname}>")
+
+
+                val msg = sToken?.let {
+                    "${game.nickname} 【每日签到添加成功[√] | 米游币签到添加成功[√]】"
+                } ?: let {
+                    "${game.nickname} 【每日签到添加成功[√] | 米游币签到添加失败[×]】"
+                }
+                return Result.ok(game, msg)
             }
             return Result.err("cookie 无效 :)", ERROR_COOKIE)
         }
@@ -173,11 +189,13 @@ class GenshinController {
     @ResponseBody
     fun addUser(
         @RequestParam("uid", required = false) uid: String?,
-        @RequestParam("cookie", required = false) cookie: String?,
+        @RequestParam("cookie_token", required = false) cToken: String?,
+        @RequestParam("account_id", required = false) accountId: String?,
+        @RequestParam("login_ticket", required = false) loginTicket: String?,
         @RequestParam("password", required = false) password: String?
     ): Result {
         log.info("api - [add-user] $uid")
-        if (AskUtils.isFieldEmpty(uid, cookie)) {
+        if (AskUtils.isFieldEmpty(uid, cToken, accountId)) {
             return Result.err("参数错误", ERROR_PARAMETER)
         }
         if (!AskUtils.isStrUidEfficient(uid!!)) {
@@ -186,19 +204,21 @@ class GenshinController {
         if (AskUtils.isPasswordCorrect(password)) {
             return Result.err("密码过长", ERROR_PARAMETER)
         }
-
+        cToken!!
+        accountId!!
         userMapper?.let {
             if (SqlUtils.isdUserExist(it, uid)) {
                 return Result.err("用户已存在", ERROR_USER_EXIST)
             }
             val sqlCookieToken =
-                AskUtils.isStrCookieEfficient(it, cookie!!) ?: return Result.err("cookie 无效", ERROR_COOKIE)
+                AskUtils.isStrCookieTokenEfficient(it, cToken) ?: return Result.err("cookie 无效", ERROR_COOKIE)
             if (sqlCookieToken == "1") {
                 return Result.err("cookie 已存在", ERROR_COOKIE)
             }
-            val uuid: String = AskUtils.getGameCookieUUid(cookie) ?: UUID.randomUUID().toString()
-            val userInfo: JsonUserInfo? = AskUtils.getUserInfo(AskInfoData(cookie, uuid))
-            log.info("$userInfo")
+            val uuid: String = UUID.randomUUID().toString()
+            val userInfo: JsonMiHoYoBack<JsonUserData>? =
+                AskUtils.getUserInfo(AskInfoData(uuid, accountId = accountId, cookieToken = cToken))
+            // log.info(" -----------       ${userInfo?.data}")
 
             userInfo?.let { ud ->
                 if (ud.retcode != 0) {
@@ -209,13 +229,34 @@ class GenshinController {
                 if (SqlUtils.isdUserExist(it, game.game_uid)) {
                     return Result.err("用户已存在", ERROR_USER_EXIST)
                 }
+                val sToken: String? = loginTicket?.let { login_ticket ->
+                    AskUtils.getBbsSToken(login_ticket, accountId)
+                }
 
-                it.insert(UserModer(game.game_uid, cookie, game.region, uuid, sqlCookieToken, password))
+                it.insert(
+                    UserModer(
+                        uid = game.game_uid,
+                        region = game.region,
+                        uuid,
+                        accountId,
+                        sToken,
+                        cookieToken = sqlCookieToken,
+                        password
+                    )
+                )
                 // 排行
                 val selectGameUid = SqlUtils.selectGameUid(it, game.game_uid)
                 game.ranking = it.queryByIdRanking(selectGameUid!!.id!!).rank
                 log.info("排行 ${game.ranking}")
-                return Result.ok(game, "添加成功: <${game.nickname}>")
+
+                val msg = sToken?.let {
+                    game.addResults[JsonUserData.NameKey.BBS_SING.KEY] = JsonUserData.AddResults(true, "米游币任务添加成功")
+                    "${game.nickname} 【每日签到添加成功[√] | 米游币签到添加成功[√]】"
+                } ?: let {
+                    game.addResults[JsonUserData.NameKey.BBS_SING.KEY] = JsonUserData.AddResults(false, "米游币任务添加失败")
+                    "${game.nickname} 【每日签到添加成功[√] | 米游币签到添加失败[×]】"
+                }
+                return Result.ok(game, msg)
             }
             return Result.err("cookie 无效 :)", ERROR_COOKIE)
         }
@@ -285,7 +326,7 @@ class GenshinController {
 
                 val recordModerList = it.selectList(QueryWrapper<RecordModer>().apply {
                     eq("c_belong", uid)
-                    if(order){
+                    if (order) {
                         orderByAsc("c_time")
                     } else {
                         orderByDesc("c_time")

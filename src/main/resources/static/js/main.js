@@ -1,8 +1,7 @@
-
 new Vue({
     el: '#root',
     data: {
-        serve_url: "http://pkpk.run:8083", // pkpk.run   127.0.0.1
+        serve_url: "http://127.0.0.1:8083", // pkpk.run   127.0.0.1
         element: document.documentElement,
         dialogWidth: 35,
         inputUid: '',
@@ -41,9 +40,8 @@ new Vue({
         checkedCities: ['失败的', '成功的'],
         radio: false,
         successNum: 0,
+        errorNum: 0,
         tableData: [],
-
-
 
         addStr: "添加", replaceStr: "更新", inquireStr: "查询", unbindStr: "解除",
         addLoading: false, replaceLoading: false, inquireLoading: false, unbindLoading: false,
@@ -54,12 +52,15 @@ new Vue({
             level: 0,
             nickname: '',
             region_name: '',
-            ranking: 0
+            ranking: 0,
+            addResults: {
+                game_sign: {isOk: true, msg: '每日签到添加成功'},
+                bbs_sign: {isOk: false, msg: '米游币任务添加失败'}
+            },
         },
         timer: null,
     },
     mounted() {
-        let _this = this
         this.windowDialogAdjustment()
         window.addEventListener('mousewheel', this.handleScroll, false)
         window.addEventListener('DOMMouseScroll', this.handleScroll, false)
@@ -131,14 +132,14 @@ new Vue({
         replaceUser() {
             let _this = this
             _this.replaceLoading = true
-            this.queryUserPublicData(function (data) {
+            this.queryUserPublicData(function (_) {
                 _this.onPwsClick = 0
                 _this.replaceLoading = false
-            }, function (data) {
+            }, function (_) {
                 _this.inquireBaseUserInfo()
-            }, function (data) {
+            }, function (_) {
                 _this.replaceLoading = false
-            }, function (data) {
+            }, function (_) {
                 _this.replaceLoading = false
             })
         },
@@ -190,21 +191,37 @@ new Vue({
         },
 
 
-
-
         // 添加cookie
         addCookieEfficient() {
             let _this = this
-            if (this.formAddUser.cookie == null || this.formAddUser.cookie.length <= 0) {
-                _this.warning("cookie 不能为空")
+            if (this.formAddUser.cookie.isEmpty || this.formAddUser.cookie.length <= 0) {
+                this.warning("cookie 不能为空")
                 return
             }
+            let hashCookie = this.hashCookie(_this.formAddUser.cookie);
+
+            let account_id = this.getAccountId(hashCookie)
+            if (account_id.isEmpty) {
+                this.warning("cookie 无效(account_id)")
+                return
+            }
+
+            let cookie_token = hashCookie['cookie_token']
+            if (cookie_token.isEmpty) {
+                this.warning("cookie 无效(cookie_token)")
+                return
+            }
+            // bbs
+            let login_ticket = hashCookie['login_ticket']
+
             this.dialogAddLoading = true
 
             let param = new FormData()
-            param.append('uid', this.inputUid)
-            param.append('cookie', this.formAddUser.cookie)
-            param.append('password', this.formAddUser.password)
+            param.append('uid', _this.inputUid)
+            param.append('cookie_token', cookie_token)
+            param.append('account_id', account_id)
+            param.append('login_ticket', login_ticket)
+            param.append('password', _this.formAddUser.password)
 
 
             this.postUrl('/genshin-api/add-user', param, function (data) {
@@ -222,6 +239,8 @@ new Vue({
                 _this.gameData.game_uid = data.result.game_uid
                 _this.gameData.nickname = data.result.nickname
                 _this.gameData.ranking = data.result.ranking
+                console.log(data.result.addResults)
+                _this.gameData.addResults = data.result.addResults
 
                 _this.inputUid = data.result.game_uid
                 // _this.success(data.reason)
@@ -265,21 +284,51 @@ new Vue({
                 _this.dialogPwsVisible = false
                 _this.dialogPwsLoading = false
 
+                // {time: "2022", game: "冒险家的经验*3", bbs: "米游币*110", msg: "任务成功"}
+
+                /* bbsQuantity: 60
+                 belong: "107325876"
+                 gameName: "摩拉"
+                 gameQuantity: 5000
+                 id: 58
+                 isBbsOk: true
+                 isGameOk: true
+                 logoMsg: "[game](签到完成), [bbs](签到任务你已手动完成！), [bbs](论坛任务部分完成！)"
+                 time: "2022-10-18 13:55:43"*/
+                _this.tableData = []
+                if (data.result.length <= 0){
+                    return
+                }
                 data.result.forEach(function (v, i) {
-                    if (v.name == null || v.name.length <= 0) {
-                        v.name = '<无数据>'
+
+                    let game = '———'
+                    if (v.gameName != null && v.gameName.length > 0) {
+                        game = `${v.gameName}*${v.gameQuantity}`
                     }
-                    let arr = v.time.split(/[ \/:]/g)[0].split("-");
-                    v.time = `${arr[1]}月${arr[2]}日`
-                    if (v.isError) {
-                        v.isError = '成功'
+
+                    let bbs = '———'
+                    if (v.bbsQuantity > 0) {
+                        bbs = `米游币*${v.bbsQuantity}`
+                    }
+
+                    let arr = v.time.split(/[ \/:]/g)[0].split("-")
+                    let time = `${arr[1]}月${arr[2]}日`
+
+                    let msg = '任务成功'
+                    if (v.isBbsOk && v.isGameOk) {
                         _this.successNum++
+                    } else if (v.isBbsOk || v.isGameOk) {
+                        msg = '部分成功'
                     } else {
-                        v.isError = '失败'
+                        msg = '任务失败'
+                        _this.errorNum++
                     }
+
+                    _this.tableData.push({
+                        time: time, game: game, bbs: bbs, msg: msg
+                    })
                 })
 
-                _this.tableData = data.result
 
             }, function (e) {
                 _this.inquireLoading = false
@@ -288,9 +337,6 @@ new Vue({
                 _this.warning(e.reason == null ? "服务器出错" : e.reason)
             })
         },
-
-
-
 
 
         // 更新用户数据
@@ -302,11 +348,32 @@ new Vue({
             }*/
             this.dialogReplaceLoading = false
 
+            let account_id = ''
+            let cookie_token = ''
+            let login_ticket = ''
+            if (this.formReplaceUser.cookie != null &&  !this.formReplaceUser.cookie.isEmpty){
+                let hashCookie = this.hashCookie(this.formReplaceUser.cookie);
+                account_id = this.getAccountId(hashCookie)
+                if (account_id.isEmpty) {
+                    this.warning("cookie 无效(account_id)")
+                    return
+                }
+                cookie_token = hashCookie['cookie_token']
+                if (cookie_token.isEmpty) {
+                    this.warning("cookie 无效(cookie_token)")
+                    return
+                }
+                // bbs
+                login_ticket = hashCookie['login_ticket']
+            }
+
+
             let param = new FormData()
             param.append('uid', this.inputUid)
-            param.append('cookie', this.formReplaceUser.cookie)
-            param.append('new-password', this.formReplaceUser.password)
-            param.append('old-password', this.dialogPwsInputPws)
+            param.append('cookie_token', cookie_token)
+            param.append('login_ticket', login_ticket)
+            param.append('new_password', this.formReplaceUser.password)
+            param.append('old_password', this.dialogPwsInputPws)
 
             this.postUrl('/genshin-api/replace-user', param, function (data) {
                 // 添加成功
@@ -355,7 +422,7 @@ new Vue({
         },
 
         // 解绑用户
-        sendUnbindUser(){
+        sendUnbindUser() {
             let _this = this
             if (this.isInputUid()) {
                 this.warning("uid 有误")
@@ -375,17 +442,16 @@ new Vue({
         },
 
 
-
-        onPwsClickChoose(){
+        onPwsClickChoose() {
             let _this = this
             this.dialogPwsLoading = true
             if (this.onPwsClick === 0) {
                 // 更新
                 this.inquireBaseUserInfo(this.dialogPwsInputPws)
-            } else  if (this.onPwsClick === 1){
+            } else if (this.onPwsClick === 1) {
                 // 查询
                 this.inquireUserRecordInfo()
-            } else if (this.onPwsClick === 2){
+            } else if (this.onPwsClick === 2) {
                 // 解绑
                 this.getUrl(`/genshin-api/user-info?uid=${this.inputUid}&password=${this.dialogPwsInputPws}`, function (data) {
                     _this.dialogPwsVisible = false
@@ -492,6 +558,26 @@ new Vue({
             }).catch((err) => {
                 error_callback(err)
             })
+        },
+
+        hashCookie(cookieStr) {
+            if (cookieStr == null || cookieStr.isEmpty) return null
+            let replaceCookie = cookieStr.replaceAll(" ", "")
+            if (replaceCookie.isEmpty) return null
+            let cookiesStr = replaceCookie.split(";")
+            if (cookiesStr.size <= 0) return null
+            let cookies = []
+            cookiesStr.forEach(value => {
+                if (value != null && !value.isEmpty && value.includes("=")) {
+                    let cookieQe = value.split("=")
+                    cookies[cookieQe[0]] = cookieQe[1]
+                }
+            })
+            return cookies
+        },
+
+        getAccountId(hashCookie){
+            return hashCookie['account_id'].isEmpty ?  hashCookie['ltuid'].isEmpty ? hashCookie['login_uid'] : hashCookie['ltuid'] : hashCookie['account_id']
         }
     }
 

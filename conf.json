@@ -1,0 +1,142 @@
+{
+
+  "globals": {
+
+    "#app_version": "版本号 跟ds对上",
+    "app_version": "2.38.1",
+
+    "#ds_game_password": " 游戏奖励 签到 ds 密码    9nQiU3AV0rJSIBWgdynfoGMGKaklfbM7(2.34.1)",
+    "ds_game_password": "yUZ3s0Sna1IrSNfk29Vo6vRapdOyqyhB",
+
+    "#ds_bbs_password": " 论坛 签到 ds 密码 （用于ds里包含要提交的内容）",
+    "ds_bbs_password": "t0qEgfub6cvueAPgR5m9aQWWVciEer7v",
+
+    "#ds_bbs_password2": " 论坛 点赞 ds 密码 （用于ds里不包含要提交的内容） ",
+    "ds_bbs_password2": "PVeGWIZACpxXZ1ibMVJPi9inCY4Nd4y2",
+
+
+    "#act_id": " api 动作Id ",
+    "act_id": "e202009291139501",
+
+    "#url_game_user_info": " 用户信息  ?game_biz=hk4e_cn  原神 = hk4e_cn ",
+    "url_game_user_info": "https://api-takumi.mihoyo.com/binding/api/getUserGameRolesByCookie",
+
+    "#url_game_sign_awards": " 用户签到奖励list  ?act_id= ",
+    "url_game_sign_awards": "https://api-takumi.mihoyo.com/event/bbs_sign_reward/home",
+
+    "#url_game_sign": " 请求签到(游戏奖励)  {act_id:e202009291139501,region:cn_gf01,uid:198904404}  中间无空格 ",
+    "url_game_sign": "https://api-takumi.mihoyo.com/event/bbs_sign_reward/sign",
+
+    "#url_game_sign_info": " 获取签到信息   ?region=${region}&act_id=${act_id}&uid= ",
+    "url_game_sign_info": "https://api-takumi.mihoyo.com/event/bbs_sign_reward/info",
+
+
+
+    "#url_bbs_token": " get 根据 login_ticket 获取 token   包括 ltoken stoken",
+    "url_bbs_token": "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket=%s&token_types=3&uid=%s",
+
+    "#url_bbs_forum_list": " get 获取帖子列表 forum_id  ",
+    "url_bbs_forum_list": "https://bbs-api.mihoyo.com/post/api/getForumPostList?is_good=false&is_hot=false&page_size=20&sort_type=1&forum_id=",
+
+    "#url_bbs_task_list": " get 获取任务列表 ",
+    "url_bbs_task_list": "https://bbs-api.mihoyo.com/apihub/sapi/getUserMissionsState",
+
+    "#url_bbs_sign": " post 签到(论坛板块签到)    中间无空格  post {gids: id}  id: 2",
+    "url_bbs_sign": "https://bbs-api.mihoyo.com/apihub/app/api/signIn",
+
+    "#url_bbs_detail": " get 看贴   post_id = 29663732 ",
+    "url_bbs_detail": "https://bbs-api.mihoyo.com/post/api/getPostFull?post_id=",
+
+    "#url_bbs_vote": " post 点赞   {post_id: 29663732, is_cancel: false}",
+    "url_bbs_vote": "https://bbs-api.mihoyo.com/apihub/sapi/upvotePost",
+
+    "#url_bbs_share": " get 分享   entity_id = post_id = 29663732",
+    "url_bbs_share": "https://bbs-api.mihoyo.com/apihub/api/getShareConf?entity_type=1&entity_id="
+  },
+
+  "headers": {
+    "#reward": "奖励",
+    "reward": {
+      "x-rpc-platform":"android",
+      "x-rpc-device_model":"MI",
+      "x-rpc-device_name":"Xiaomi",
+      "x-rpc-channel":"xiaomi",
+      "x-rpc-sys_version":"11",
+      "x-rpc-client_type":"5",
+      "Referer": "https://webstatic.mihoyo.com/bbs/event/signin-ys/index.html?bbs_auth_required=true&act_id=e202009291139501&utm_source=bbs&utm_medium=mys&utm_campaign=icon",
+      "Accept":"application/json, text/plain, */*",
+      "Accept-Encoding":"gzip, deflate",
+      "Accept-Language":"zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
+      "Connection":"keep-alive",
+      "Content-Type":"application/json;charset=UTF-8",
+      "Content-Length":"66",
+      "Origin":"https://webstatic.mihoyo.com",
+      "Sec-Fetch-Site":"same-site",
+      "Sec-Fetch-Mode":"cors",
+      "Sec-Fetch-Dest":"empty",
+      "Host":"api-takumi.mihoyo.com",
+      "X-Requested-With":"com.mihoyo.hyperion"
+    },
+
+    "#bbs": "论坛",
+    "bbs": {
+      "x-rpc-client_type":"2",
+      "x-rpc-sys_version":"6.0.1",
+      "x-rpc-channel":"xiaomi",
+      "x-rpc-device_name":"Xiaomi",
+      "x-rpc-device_model":"Mi",
+      "Referer":"https://app.mihoyo.com",
+      "Host":"bbs-api.mihoyo.com",
+      "User-Agent":"okhttp/4.8.0"
+    }
+  },
+
+
+
+
+  "#game_list": "目前只有原神",
+  "game_list": [
+    {
+      "id": 2,
+      "forum_id": 26,
+      "name": "原神",
+      "url": "https://bbs.mihoyo.com/ys/"
+    },
+    {
+      "id": 1,
+      "forum_id": 1,
+      "name": "崩坏3",
+      "url": "https://bbs.mihoyo.com/bh3/"
+    },
+    {
+      "id": 3,
+      "forum_id": 30,
+      "name": "崩坏2",
+      "url": "https://bbs.mihoyo.com/bh2/"
+    },
+    {
+      "id": 4,
+      "forum_id": 37,
+      "name": "未定事件簿",
+      "url": "https://bbs.mihoyo.com/wd/"
+    },
+    {
+      "id": 5,
+      "forum_id": 34,
+      "name": "大别野",
+      "url": "https://bbs.mihoyo.com/dby/"
+    },
+    {
+      "id": 6,
+      "forum_id": 52,
+      "name": "崩坏：星穹铁道",
+      "url": "https://bbs.mihoyo.com/sr/"
+    },
+    {
+      "id": 8,
+      "forum_id": 57,
+      "name": "绝区零",
+      "url": "https://bbs.mihoyo.com/zzz/"
+    }
+  ]
+}

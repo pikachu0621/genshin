@@ -5,8 +5,7 @@ import com.pkpk.genshin.mapper.UserMapper
 import com.pkpk.genshin.mode.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -14,8 +13,11 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Component
 import org.springframework.util.DigestUtils
 import org.springframework.web.client.RestTemplate
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.sql.Timestamp
+import java.util.*
 import kotlin.math.floor
+import kotlin.random.Random
 
 
 @Component
@@ -24,85 +26,182 @@ object AskUtils {
     // log
     private val log: Logger = LoggerFactory.getLogger(AskUtils::class.java)
 
-    // ds 密码
-    private var dsPassword = "9nQiU3AV0rJSIBWgdynfoGMGKaklfbM7"
-
-    // api 动作Id
-    private var actId = "e202009291139501"
-
-    // 用户信息  ?game_biz=hk4e_cn  原神 = hk4e_cn
-    private var urlUserInfo = "https://api-takumi.mihoyo.com/binding/api/getUserGameRolesByCookie"
-
-    // 用户签到奖励list  ?act_id=
-    private var urlSignAwards = "https://api-takumi.mihoyo.com/event/bbs_sign_reward/home"
-
-    // 请求签到   PostSignData {"act_id":"e202009291139501","region":"cn_gf01","uid":"198904404"}  中间无空格
-    private var urlSign = "https://api-takumi.mihoyo.com/event/bbs_sign_reward/sign"
-
-    // 获取签到信息   ?region=${region}&act_id=${act_id}&uid=
-    private var urlSignInfo = "https://api-takumi.mihoyo.com/event/bbs_sign_reward/info"
-
     // json
     private var mapper: ObjectMapper = ObjectMapper()
 
-
-    private val fixedHeaders = mutableMapOf<String, String>().apply {
-        put(
-            "User_Agent",
-            "Mozilla/5.0 (Linux; Android 10; MIX 2 Build/QKQ1.190825.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/83.0.4103.101 Mobile Safari/537.36 miHoYoBBS/2.34.1"
-        )
-        put("Accept", "application/json, text/plain, */*")
-        put("Content_Type", "application/json;charset=UTF-8")
-        put("Connection", "keep-alive")
-        put("Origin", "https://webstatic.mihoyo.com")
-        put("X_Requested_With", "com.mihoyo.hyperion")
-        put("Sec_Fetch_Site", "same-site")
-        put("Sec_Fetch_Mode", "cors")
-        put("Sec_Fetch_Dest", "empty")
-        put("Accept_Encoding", "gzip,deflate")
-        put("Accept_Language", "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7")
-        put("Content-Length", "66")
-        put("x-rpc-client_type", "5")
-        put(
-            "Referer",
-            "https://webstatic.mihoyo.com/bbs/event/signin-ys/index.html?bbs_auth_required=true&act_id=${actId}1&utm_source=bbs&utm_medium=mys&utm_campaign=icon"
-        )
-        put("x-rpc-app_version", "2.34.1")
-    }
-
+    // 配置数据
+    lateinit var confData: ConfData
 
     /////////////////////////////////////////////////////////////////////////////////////////////
 
     // 获取用户信息 原神
-    fun getUserInfo(askInfoData: AskInfoData) =
-        getUrl("$urlUserInfo?game_biz=hk4e_cn", askInfoData, JsonUserInfo::class.java)?.body
-
-
-    // 获取 原神 签到奖励List
-    fun getSignAwards(actId: String = this.actId!!) =
-        getUrl("$urlSignAwards?act_id=$actId", null, JsonSignReward::class.java)?.body
-
-
-    // 获取用户签到信息
-    fun getUserSignInfo(askInfoData: AskInfoData): JsonSignInfo? {
-        if (askInfoData.sinData == null) return null
+    /**
+     * uuid not null
+     * account_id not null
+     * cookieToke not null
+     * 无需 ds
+     */
+    fun getUserInfo(askInfoData: AskInfoData<out Any>): JsonMiHoYoBack<JsonUserData>? {
         return getUrl(
-            "$urlSignInfo?region=${askInfoData.sinData!!.region}&act_id=${actId}&uid=${askInfoData.sinData!!.uid}",
-            askInfoData,
-            JsonSignInfo::class.java
+            "${confData.globals.url_game_user_info}?game_biz=hk4e_cn",
+            getHeaders(askInfoData),
+            object : ParameterizedTypeReference<JsonMiHoYoBack<JsonUserData>>() {}
         )?.body
     }
 
-    // 用户签到
-    fun postUserSignIn(askInfoData: AskInfoData): JsonSignOk? {
+
+    // 获取 原神 签到奖励List url_game_sign_awards
+    // 无需 ds  无需 cookie
+    fun getSignAwards(actId: String = confData.globals.act_id) =
+        getUrl(
+            "${confData.globals.url_game_sign_awards}?act_id=$actId",
+            getHeaders(null),
+            JsonSignRewardData::class.java
+        )?.body
+
+
+    // 获取用户签到信息
+    // 无需 ds  需 cookie
+    fun getUserSignInfo(askInfoData: AskInfoData<PostSignData>): JsonMiHoYoBack<JsonSignData>? {
         if (askInfoData.sinData == null) return null
-        askInfoData.sinData!!.act_id = actId
-        return postUrl(urlSign, askInfoData.sinData!!, askInfoData, JsonSignOk::class.java)?.body
+        return getUrl(
+            "${confData.globals.url_game_sign_info}?region=${askInfoData.sinData!!.region}&act_id=${confData.globals.act_id}&uid=${askInfoData.sinData!!.uid}",
+            getHeaders(askInfoData),
+            JsonSignData::class.java
+        )?.body
+    }
+
+    // 用户签到    cookie  account_id=172095415;cookie_token=lrKIPlzfgBp1hQTnUgP8pPlf4auCYIh5pdWZwABa;
+    // 需 ds  需 cookie
+    fun postUserSignIn(askInfoData: AskInfoData<PostSignData>): JsonMiHoYoBack<JsonSignOkData>? {
+        if (askInfoData.sinData == null) return null
+        askInfoData.sinData!!.act_id = confData.globals.act_id
+        // log.warn("----------     $headers    ${askInfoData.sinData}")
+        /// {"region":"cn_gf01","uid":"198904404","act_id":"e202009291139501"}
+        return postUrl(
+            confData.globals.url_game_sign,
+            askInfoData.sinData!!,
+            getHeaders(askInfoData).apply {
+                add("DS", getDS())
+            },
+            JsonSignOkData::class.java
+        )?.body
+    }
+
+
+    // 米游币任务
+
+    // 获取帖子列表
+    //  无需 ds  无需 cookie
+    fun getBbsForumPostList(): JsonMiHoYoBack<BbsPostListData>? {
+        val askInfoData = AskInfoData<Any>(type = AskInfoType.BBS_SIGN_NULL)
+        val gameKeyData = getListGameKeyData(2) ?: return null
+        // log.info("${confData.globals.url_bbs_forum_list}    ${getHeaders(askInfoData)} ")
+        return getUrl(
+            "${confData.globals.url_bbs_forum_list}${gameKeyData.forum_id}",
+            getHeaders(askInfoData),
+            BbsPostListData::class.java
+        )?.body
+    }
+
+    // 获取 任务列表
+    // 无需 ds  需 cookie
+    fun getBbsTaskList(askInfoData: AskInfoData<out Any>): JsonMiHoYoBack<BbsUserTaskListData>? {
+        askInfoData.type = AskInfoType.BBS_SIGN
+        // log.info("------- $httpHeaders   ${confData.globals.url_bbs_task_list}")
+        return getUrl(
+            confData.globals.url_bbs_task_list,
+            getHeaders(askInfoData),
+            BbsUserTaskListData::class.java
+        )?.body
+    }
+
+
+    // 签到
+    //  需 ds  需 cookie
+    fun postBbsSign(askInfoData: AskInfoData<PostBbsSignData>): JsonMiHoYoBack<PointsData>? {
+        askInfoData.type = AskInfoType.BBS_SIGN
+        val gameKeyData = getListGameKeyData(2) ?: return null
+        askInfoData.sinData = PostBbsSignData("${gameKeyData.id}")
+        // log.info("------------ ${getHeaders(askInfoData)}    ${confData.globals.url_bbs_sign}   ${PostBbsSignData("${gameKeyData.id}")}")
+        return postUrl(
+            confData.globals.url_bbs_sign,
+            askInfoData.sinData!!,
+            getHeaders(askInfoData).apply {
+                add("DS", getDS2(mapper.writeValueAsString(values)))
+            },
+            PointsData::class.java
+        )?.body
+    }
+
+
+    // 看帖  sinData 文章id
+    //  无需 ds  需 cookie
+    fun getBbsLook(askInfoData: AskInfoData<String>): JsonMiHoYoBack<Any>? {
+        askInfoData.type = AskInfoType.BBS_SIGN
+        // log.info("----------- ${confData.globals.url_bbs_detail}${askInfoData.sinData}     ${getHeaders(askInfoData)}")
+        return getUrl(
+            "${confData.globals.url_bbs_detail}${askInfoData.sinData}",
+            getHeaders(askInfoData),
+            Any::class.java
+        )?.body
+    }
+
+    // 点赞
+    //  需 ds  需 cookie
+    fun postBbsVote(askInfoData: AskInfoData<PostBbsLikeData>): JsonMiHoYoBack<Any>? {
+        askInfoData.sinData ?: return null
+        askInfoData.type = AskInfoType.BBS_SIGN
+        return postUrl(
+            confData.globals.url_bbs_vote,
+            askInfoData.sinData!!,
+            getHeaders(askInfoData).apply {
+                add("DS", getDS(false))
+            },
+            Any::class.java
+        )?.body
+    }
+
+    // 分享   sinData 文章id
+    //  无需 ds  需 cookie
+    fun getBbsShare(askInfoData: AskInfoData<String>): JsonMiHoYoBack<Any>? {
+        askInfoData.type = AskInfoType.BBS_SIGN
+        return getUrl(
+            "${confData.globals.url_bbs_share}${askInfoData.sinData}",
+            getHeaders(askInfoData).apply {
+                add("DS", getDS(false))
+            },
+            Any::class.java
+        )?.body
+    }
+
+
+    // 根据 login_ticket 获取 stoken
+    //  需 ds  需 cookie
+    fun getBbsSToken(loginTicket: String, accountId: String): String? {
+        val askInfoData = AskInfoData<Any>(type = AskInfoType.GAME_SIGN_NULL)
+        val formatBbsToken = String.format(confData.globals.url_bbs_token, loginTicket, accountId)
+        val body = getUrl(
+            formatBbsToken,
+            getHeaders(askInfoData),
+            getReference(TokenListData::class.java)
+        )?.body
+        // log.info(" -----------       ${body}   ${formatBbsToken}")
+        body ?: return null
+        if (body.retcode != 0 || body.data == null || body.data.list.isEmpty()) {
+            return null
+        }
+        body.data.list.forEach {
+            if (it.name == "stoken") {
+                return it.token
+            }
+        }
+        return null
     }
 
 
     // 用户cookie是否有效
-    fun inquireCookieEfficient(askInfoData: AskInfoData): Boolean {
+    fun inquireCookieEfficient(askInfoData: AskInfoData<out Any>): Boolean {
         val userInfo = getUserInfo(askInfoData)
         if (userInfo != null && userInfo.retcode == 0) {
             return true
@@ -110,16 +209,37 @@ object AskUtils {
         return false
     }
 
-
     /////////////////////////////////////////////////////////////////////////////////////////////
+
+    inline fun <reified T> typeReference() = object : ParameterizedTypeReference<T>() {}
+
+    fun <T> getReference(clazz: Class<T>): ParameterizedTypeReference<JsonMiHoYoBack<T>> {
+        val type = ParameterizedTypeImpl.make(
+            JsonMiHoYoBack::class.java, arrayOf(clazz),
+            JsonMiHoYoBack::class.java.declaringClass
+        )
+        return ParameterizedTypeReference.forType(type)
+    }
+
 
     private fun <T> getUrl(
         url: String,
-        askInfoData: AskInfoData?,
-        responseType: Class<T>
+        headers: HttpHeaders,
+        clazz: Class<T>
+    ): ResponseEntity<JsonMiHoYoBack<T>>? {
+        return getUrl(url, headers, getReference(clazz))
+    }
+
+    /**
+     * @param url url
+     * @param headers 头部
+     * @param responseType 要返回对象类型
+     */
+    private fun <T> getUrl(
+        url: String,
+        headers: HttpHeaders,
+        responseType: ParameterizedTypeReference<T>
     ): ResponseEntity<T>? {
-        val headers = getHeaders(askInfoData)
-        // log.info(headers.toString())
         return try {
             RestTemplate().exchange(
                 url,
@@ -133,25 +253,33 @@ object AskUtils {
     }
 
 
+    private fun <T> postUrl(
+        url: String,
+        postAny: Any,
+        headers: HttpHeaders,
+        clazz: Class<T>
+    ): ResponseEntity<JsonMiHoYoBack<T>>? {
+        return postUrl(url, postAny, headers, getReference(clazz))
+    }
+
     /**
      * @param url url
      * @param postAny 要 post 对象
-     * @param askInfoData 签到用户必要信息
+     * @param headers 头部
      * @param responseType 要返回对象类型
      */
     private fun <T> postUrl(
         url: String,
         postAny: Any,
-        askInfoData: AskInfoData?,
-        responseType: Class<T>
+        headers: HttpHeaders,
+        responseType: ParameterizedTypeReference<T>
     ): ResponseEntity<T>? {
         val writeValueAsString = mapper.writeValueAsString(postAny)
-        log.info("签到post json $writeValueAsString")
         return try {
             RestTemplate().exchange(
                 url,
                 HttpMethod.POST,
-                HttpEntity(writeValueAsString, getHeaders(askInfoData)),
+                HttpEntity(writeValueAsString, headers),
                 responseType
             )
         } catch (e: Exception) {
@@ -159,23 +287,66 @@ object AskUtils {
         }
     }
 
-    private fun getHeaders(askInfoData: AskInfoData?) = HttpHeaders().apply {
+
+    /**
+     * ds 按需添加
+     * add("DS", getDS2(mapper.writeValueAsString(values)))
+     * add("DS", getDS())
+     */
+    private fun getHeaders(askInfoData: AskInfoData<*>?) = HttpHeaders().apply {
         askInfoData?.let {
-            setAll(fixedHeaders)
-            add("DS", getDS())
-            add("Cookie", it.cookie)
-            add("x-rpc-device_id", it.uuid) // 518777d2-1259-3bf6-881d-ff301ede1392 // UUID.randomUUID().toString()
+            when (askInfoData.type) {
+
+                AskInfoType.GAME_SIGN_NULL -> {
+                    setAll(confData.headers.reward)
+                    add(
+                        "User-Agent",
+                        "Mozilla/5.0 (Linux; Android 11; MI 9 Build/RKQ1.200826.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/83.0.4103.106 Mobile Safari/537.36 miHoYoBBS/${confData.globals.app_version}"
+                    )
+                }
+
+                AskInfoType.BBS_SIGN_NULL -> setAll(confData.headers.bbs)
+
+                AskInfoType.GAME_SIGN -> {
+                    setAll(confData.headers.reward)
+                    add(
+                        "User-Agent",
+                        "Mozilla/5.0 (Linux; Android 11; MI 9 Build/RKQ1.200826.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/83.0.4103.106 Mobile Safari/537.36 miHoYoBBS/${confData.globals.app_version}"
+                    )
+                    add("Cookie", "account_id=${askInfoData.accountId};cookie_token=${askInfoData.cookieToken}")
+                }
+
+                AskInfoType.BBS_SIGN -> {
+                    setAll(confData.headers.bbs)
+                    add("Cookie", "stuid=${askInfoData.accountId};stoken=${askInfoData.sToken}")
+                }
+            }
+            add("x-rpc-app_version", confData.globals.app_version)
+            add("x-rpc-device_id", it.uuid)
         }
     }
 
 
-    private fun getDS(): String {
+    fun getDS2(b: String, q: String = ""): String {
+        val ts = Timestamp(System.currentTimeMillis())
+        val i = (ts.time / 1000).toString()
+        // val r = Random().nextInt(100001, 200000).toString()  open-jdk-17
+        val r = Random.nextInt(100001, 200000).toString()
+        val add = "&b=$b&q=$q"
+        val c: String =
+            DigestUtils.md5DigestAsHex(("salt=${confData.globals.ds_bbs_password}&t=$i&r=$r$add").toByteArray())
+        return "$i,$r,$c"
+    }
+
+    private fun getDS(isWebDs: Boolean = true) =
+        getDS(if (isWebDs) confData.globals.ds_game_password else confData.globals.ds_bbs_password2)
+
+    private fun getDS(dsPassword: String): String {
         val i = (Timestamp(System.currentTimeMillis()).time / 1000).toInt().toString()
         val r = getRandomStr(6)
         val c = DigestUtils.md5DigestAsHex("salt=$dsPassword&t=$i&r=$r".toByteArray())
         return "${i},${r},${c}"
     }
-
 
     private fun getRandomStr(e: Int): String {
         val d = "ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678"
@@ -187,8 +358,11 @@ object AskUtils {
     }
 
 
-    fun getGameCookieToken(valueStr: String): String? = getCookieValue(valueStr, "cookie_token") // 这个属于米游社uid
-    fun getGameCookieUUid(valueStr: String): String? = getCookieValue(valueStr, "_MHYUUID") // 这个属于米游社uid
+    fun getGameCookieToken(valueStr: String): String? =
+        getCookieValue(valueStr, "cookie_token")  // 这个属于米游社 cookie_token
+
+    fun getGameAccountId(valueStr: String): String? = getCookieValue(valueStr, "account_id")      // 这个属于米游社 account_id
+    fun getGameCookieUUid(valueStr: String): String? = getCookieValue(valueStr, "_MHYUUID")       // 这个属于米游社uuid
     fun getCookieValue(valueStr: String, key: String): String? {
         cookieToMap(valueStr)?.let {
             return it[key]
@@ -198,7 +372,6 @@ object AskUtils {
 
 
     private fun cookieToMap(valueStr: String): Map<String, String>? {
-
         return try {
             var value = valueStr
             val map: MutableMap<String, String> = HashMap()
@@ -231,12 +404,15 @@ object AskUtils {
     }
 
     // 判断字符串cookie 是否有效   有效 cookieToKen   无效 null  已存在 "1"
-    fun isStrCookieEfficient(userMapper: UserMapper, cookie: String?): String? {
-        if (cookie == null || cookie.isEmpty() || cookie.length > 5000 || cookie.length < 100) {
-            return null
-        }
-        val cookieToken = getGameCookieToken(cookie)
-        if (cookieToken == null || cookieToken.isEmpty()) {
+    fun isStrCookieTokenEfficient(
+        userMapper: UserMapper,
+        cookieToken: String?
+    ): String? {
+        if (cookieToken == null
+            || cookieToken.isEmpty()
+            || cookieToken.length > 100
+            || cookieToken.length < 5
+        ) {
             return null
         }
         if (SqlUtils.isGameLoginTicket(userMapper, cookieToken)) {
@@ -244,6 +420,7 @@ object AskUtils {
         }
         return cookieToken
     }
+
 
     // 判断字符串uid 是否有效   有效 true  无效 false
     fun isStrUidEfficient(uid: String?): Boolean {
@@ -270,5 +447,15 @@ object AskUtils {
         return true
     }
 
+
+    /**
+     * 获取conf.json 游戏数据
+     */
+    fun getListGameKeyData(id: Int): ConfData.Game? {
+        confData.game_list.forEach {
+            if (it.id == id) return it
+        }
+        return null
+    }
 
 }
