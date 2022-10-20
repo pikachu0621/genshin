@@ -52,7 +52,7 @@ class StartContextTask : ApplicationContextAware {
         try {
             AskUtils.confData = json!!.readValue(confFile)
         }catch (e: Exception){
-            log.error("=================== 配置文件解析出错 ===================")
+            log.error("=================== 配置文件解析出错! ===================")
             getRunApplication().close()
         }
         GenshinSignTask.writeSignAwardsJson(log, json, property)

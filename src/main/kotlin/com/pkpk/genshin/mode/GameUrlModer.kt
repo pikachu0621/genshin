@@ -82,7 +82,7 @@ data class AskInfoData<T>(
     var uuid: String,           // 设备uuid  UUID.randomUUID().toString()
     var accountId: String,      // 米游社account_id
     var sToken: String? = null, // 米游社stoken
-    var cookieToken: String,    // 米游社cookie_token
+    var cookie: String,         // 米游社cookie   签到用这个
     var sinData: T? = null,
     var type: AskInfoType = AskInfoType.GAME_SIGN    // 类型
 ) {
@@ -90,11 +90,11 @@ data class AskInfoData<T>(
         uuid: String? = null,
         accountId: String? = null,
         sToken: String? = null,
-        cookieToken: String? = null,
+        cookie: String? = null,
         sinData: T? = null,
         type: AskInfoType = AskInfoType.GAME_SIGN_NULL,
         tag: Any? = null,
-    ) : this(uuid?:"", accountId?:"", sToken, cookieToken?:"", sinData, type)
+    ) : this(uuid?:"", accountId?:"", sToken, cookie?:"", sinData, type)
 
 }
 

@@ -17,6 +17,8 @@ data class UserModer(
     var sToken: String? = null,             // 米游社 s token
     @TableField(value = "cookie_token")
     var cookieToken: String,                // 米游社 cookie_token
+    @TableField(value = "cookie")
+    var cookie: String,                     // 总的cookie 游戏签到用 不然容易风控
     var password: String? = null,
     @TableField(value = "add_time", updateStrategy = FieldStrategy.IGNORED)
     var addTime: String? = null,
@@ -35,8 +37,9 @@ data class UserModer(
         accountId: String,
         sToken: String? = null,
         cookieToken: String,
+        cookie: String,
         password: String? = null
-    ) : this(null, uid, region, uuid, accountId, sToken, cookieToken, password)
+    ) : this(null, uid, region, uuid, accountId, sToken, cookieToken, cookie, password)
 
     constructor(
         id: Long? = null,
@@ -46,10 +49,11 @@ data class UserModer(
         accountId: String,
         sToken: String? = null,
         cookieToken: String,
+        cookie: String,
         password: String? = null,
         addTime: String? = null,
         isLock: Boolean = false,
         upTime: String? = null,
         isCookieAvailable: Boolean = true,
-    ) : this(id, uid, region, uuid, accountId, sToken, cookieToken, password, addTime, isLock, upTime, isCookieAvailable, -1)
+    ) : this(id, uid, region, uuid, accountId, sToken, cookieToken, cookie, password, addTime, isLock, upTime, isCookieAvailable, -1)
 }

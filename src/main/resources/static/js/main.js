@@ -1,7 +1,7 @@
 new Vue({
     el: '#root',
     data: {
-        serve_url: "http://127.0.0.1:8083", // pkpk.run   127.0.0.1
+        serve_url: "http://pkpk.run:8083", // pkpk.run   127.0.0.1
         element: document.documentElement,
         dialogWidth: 35,
         inputUid: '',
@@ -161,8 +161,8 @@ new Vue({
             })
         },
 
+        // 解绑
         unbindUser() {
-            // 解绑
             let _this = this
             if (this.isInputUid()) {
                 _this.warning("uid 有误")
@@ -194,35 +194,30 @@ new Vue({
         // 添加cookie
         addCookieEfficient() {
             let _this = this
-            if (this.formAddUser.cookie.isEmpty || this.formAddUser.cookie.length <= 0) {
+            if (this.isEmpty(this.formAddUser.cookie)) {
                 this.warning("cookie 不能为空")
                 return
             }
-            let hashCookie = this.hashCookie(_this.formAddUser.cookie);
+            let hashCookie = this.hashCookie(this.formAddUser.cookie);
 
             let account_id = this.getAccountId(hashCookie)
-            if (account_id.isEmpty) {
+            if (this.isEmpty(account_id)) {
                 this.warning("cookie 无效(account_id)")
                 return
             }
 
             let cookie_token = hashCookie['cookie_token']
-            if (cookie_token.isEmpty) {
+            if (this.isEmpty(cookie_token)) {
                 this.warning("cookie 无效(cookie_token)")
                 return
             }
-            // bbs
-            let login_ticket = hashCookie['login_ticket']
 
             this.dialogAddLoading = true
 
             let param = new FormData()
-            param.append('uid', _this.inputUid)
-            param.append('cookie_token', cookie_token)
-            param.append('account_id', account_id)
-            param.append('login_ticket', login_ticket)
-            param.append('password', _this.formAddUser.password)
-
+            param.append('uid', this.inputUid)
+            param.append('cookie', this.formAddUser.cookie)
+            param.append('password', this.formAddUser.password)
 
             this.postUrl('/genshin-api/add-user', param, function (data) {
                 // 添加成功
@@ -320,7 +315,14 @@ new Vue({
                     } else if (v.isBbsOk || v.isGameOk) {
                         msg = '部分成功'
                     } else {
-                        msg = '任务失败'
+                        let m = '任务失败'
+                        if (v.logoMsg.includes('cookie') ||  v.logoMsg.includes('cook') ){
+                           m = 'cookie失效 请更新'
+                        }
+                        if (v.logoMsg.includes('触发验证码') ){
+                            m = '触发验证码 请更新cookie'
+                        }
+                        msg = m
                         _this.errorNum++
                     }
 
@@ -346,34 +348,25 @@ new Vue({
                 this.warning("cookie 不能为空")
                 return
             }*/
-            this.dialogReplaceLoading = false
 
-            let account_id = ''
-            let cookie_token = ''
-            let login_ticket = ''
-            if (this.formReplaceUser.cookie != null &&  !this.formReplaceUser.cookie.isEmpty){
+            if (!this.isEmpty(this.formReplaceUser.cookie)){
                 let hashCookie = this.hashCookie(this.formReplaceUser.cookie);
-                account_id = this.getAccountId(hashCookie)
-                if (account_id.isEmpty) {
+                if (this.isEmpty(this.getAccountId(hashCookie))) {
                     this.warning("cookie 无效(account_id)")
                     return
                 }
-                cookie_token = hashCookie['cookie_token']
-                if (cookie_token.isEmpty) {
+                if (this.isEmpty(hashCookie['cookie_token'])) {
                     this.warning("cookie 无效(cookie_token)")
                     return
                 }
-                // bbs
-                login_ticket = hashCookie['login_ticket']
             }
 
-
+            this.dialogReplaceLoading = true
             let param = new FormData()
             param.append('uid', this.inputUid)
-            param.append('cookie_token', cookie_token)
-            param.append('login_ticket', login_ticket)
-            param.append('new_password', this.formReplaceUser.password)
-            param.append('old_password', this.dialogPwsInputPws)
+            param.append('cookie', this.formReplaceUser.cookie)
+            param.append('new-password', this.formReplaceUser.password)
+            param.append('old-password', this.dialogPwsInputPws)
 
             this.postUrl('/genshin-api/replace-user', param, function (data) {
                 // 添加成功
@@ -561,14 +554,15 @@ new Vue({
         },
 
         hashCookie(cookieStr) {
-            if (cookieStr == null || cookieStr.isEmpty) return null
+            if (this.isEmpty(cookieStr)) return null
             let replaceCookie = cookieStr.replaceAll(" ", "")
-            if (replaceCookie.isEmpty) return null
+            if (this.isEmpty(replaceCookie)) return null
             let cookiesStr = replaceCookie.split(";")
             if (cookiesStr.size <= 0) return null
             let cookies = []
+            let _this = this
             cookiesStr.forEach(value => {
-                if (value != null && !value.isEmpty && value.includes("=")) {
+                if (!_this.isEmpty(value) && value.includes("=")) {
                     let cookieQe = value.split("=")
                     cookies[cookieQe[0]] = cookieQe[1]
                 }
@@ -577,7 +571,16 @@ new Vue({
         },
 
         getAccountId(hashCookie){
-            return hashCookie['account_id'].isEmpty ?  hashCookie['ltuid'].isEmpty ? hashCookie['login_uid'] : hashCookie['ltuid'] : hashCookie['account_id']
+            let account_id = hashCookie['account_id']
+            let ltuid = hashCookie['ltuid']
+            let login_uid = hashCookie['login_uid']
+            if (!this.isEmpty(account_id)) return account_id
+            if (!this.isEmpty(ltuid))  return ltuid
+            if (!this.isEmpty(login_uid)) return login_uid
+        },
+
+        isEmpty(str){
+            return str == null || str.length <= 0
         }
     }
 

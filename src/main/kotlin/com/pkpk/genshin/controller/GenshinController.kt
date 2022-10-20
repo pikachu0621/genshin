@@ -96,11 +96,9 @@ class GenshinController {
     @ResponseBody
     fun replaceUser(
         @RequestParam("uid", required = false) uid: String?,
-        @RequestParam("cookie_token", required = false) cToken: String?,
-        // @RequestParam("account_id", required = false) accountId: String?,       // 米游社 id    不会变
-        @RequestParam("login_ticket", required = false) loginTicket: String?,
-        @RequestParam("new_password", required = false) newPassword: String?,     // 空为取消密码
-        @RequestParam("old_password", required = false) oldPassword: String?      // 此密码为鉴权密码
+        @RequestParam("cookie", required = false) cookie: String?,
+        @RequestParam("new-password", required = false) newPassword: String?,     // 空为取消密码
+        @RequestParam("old-password", required = false) oldPassword: String?      // 此密码为鉴权密码
     ): Result {
         log.info("api - [replace-user] $uid")
         if (AskUtils.isFieldEmpty(uid)) {
@@ -123,8 +121,8 @@ class GenshinController {
                 }
             }
 
-            val sqlCookieToken: String? = AskUtils.isStrCookieTokenEfficient(it, cToken)
-            if (cToken != null && cToken.isNotEmpty()) {
+            val sqlCookieToken: String? = AskUtils.isStrCookieTokenEfficient(it, cookie)
+            if (cookie != null && cookie.isNotEmpty()) {
                 sqlCookieToken ?: return Result.err("cookie 无效", ERROR_COOKIE)
                 if (sqlCookieToken == "1") return Result.err("cookie 未过期不用修改", ERROR_COOKIE)
             } else {
@@ -139,7 +137,7 @@ class GenshinController {
                 AskInfoData(
                     gameData.uuid,
                     gameData.accountId,
-                    cookieToken = cToken
+                    cookie = cookie
                 )
             )
             log.info("$userInfo")
@@ -154,13 +152,15 @@ class GenshinController {
                     return Result.err("cookie 对应的uid用户已存在", ERROR_USER_EXIST)
                 }
 
-                val sToken: String? = loginTicket?.let { login_ticket ->
+                val sToken: String? = AskUtils.getCookieLoginTicket(cookie)?.let { login_ticket ->
                     AskUtils.getBbsSToken(login_ticket, gameData.accountId)
                 }
-
+                val uuid: String = AskUtils.getCookieUUid(cookie) ?: gameData.uuid
                 gameData.apply {
+                    this.uuid = uuid
                     region = game.region
-                    cookieToken = cToken
+                    cookieToken = sqlCookieToken
+                    this.cookie = cookie
                     this.sToken = sToken ?: this.sToken
                     password = newPassword
                     isCookieAvailable = true
@@ -189,13 +189,11 @@ class GenshinController {
     @ResponseBody
     fun addUser(
         @RequestParam("uid", required = false) uid: String?,
-        @RequestParam("cookie_token", required = false) cToken: String?,
-        @RequestParam("account_id", required = false) accountId: String?,
-        @RequestParam("login_ticket", required = false) loginTicket: String?,
+        @RequestParam("cookie", required = false) cookie: String?,
         @RequestParam("password", required = false) password: String?
     ): Result {
         log.info("api - [add-user] $uid")
-        if (AskUtils.isFieldEmpty(uid, cToken, accountId)) {
+        if (AskUtils.isFieldEmpty(uid, cookie)) {
             return Result.err("参数错误", ERROR_PARAMETER)
         }
         if (!AskUtils.isStrUidEfficient(uid!!)) {
@@ -204,20 +202,19 @@ class GenshinController {
         if (AskUtils.isPasswordCorrect(password)) {
             return Result.err("密码过长", ERROR_PARAMETER)
         }
-        cToken!!
-        accountId!!
+        cookie!!
         userMapper?.let {
             if (SqlUtils.isdUserExist(it, uid)) {
                 return Result.err("用户已存在", ERROR_USER_EXIST)
             }
             val sqlCookieToken =
-                AskUtils.isStrCookieTokenEfficient(it, cToken) ?: return Result.err("cookie 无效", ERROR_COOKIE)
+                AskUtils.isStrCookieTokenEfficient(it, cookie) ?: return Result.err("cookie 无效", ERROR_COOKIE)
             if (sqlCookieToken == "1") {
                 return Result.err("cookie 已存在", ERROR_COOKIE)
             }
-            val uuid: String = UUID.randomUUID().toString()
+            val uuid: String = AskUtils.getCookieUUid(cookie) ?: UUID.randomUUID().toString()
             val userInfo: JsonMiHoYoBack<JsonUserData>? =
-                AskUtils.getUserInfo(AskInfoData(uuid, accountId = accountId, cookieToken = cToken))
+                AskUtils.getUserInfo(AskInfoData(uuid, cookie = cookie))
             // log.info(" -----------       ${userInfo?.data}")
 
             userInfo?.let { ud ->
@@ -229,8 +226,10 @@ class GenshinController {
                 if (SqlUtils.isdUserExist(it, game.game_uid)) {
                     return Result.err("用户已存在", ERROR_USER_EXIST)
                 }
-                val sToken: String? = loginTicket?.let { login_ticket ->
-                    AskUtils.getBbsSToken(login_ticket, accountId)
+
+                val cookieAccountId = AskUtils.getCookieAccountId(cookie)!!
+                val sToken: String? = AskUtils.getCookieLoginTicket(cookie)?.let { login_ticket ->
+                    AskUtils.getBbsSToken(login_ticket, cookieAccountId)
                 }
 
                 it.insert(
@@ -238,9 +237,10 @@ class GenshinController {
                         uid = game.game_uid,
                         region = game.region,
                         uuid,
-                        accountId,
+                        cookieAccountId,
                         sToken,
                         cookieToken = sqlCookieToken,
+                        cookie,
                         password
                     )
                 )
@@ -316,6 +316,11 @@ class GenshinController {
 
                     val recordModerList = it.selectList(QueryWrapper<RecordModer>().apply {
                         eq("c_belong", uid)
+                        if (order) {
+                            orderByAsc("c_time")
+                        } else {
+                            orderByDesc("c_time")
+                        }
                     })
 
                     return Result.ok(recordModerList)

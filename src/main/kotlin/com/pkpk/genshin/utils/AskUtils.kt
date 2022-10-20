@@ -37,14 +37,15 @@ object AskUtils {
     // 获取用户信息 原神
     /**
      * uuid not null
-     * account_id not null
-     * cookieToke not null
-     * 无需 ds
+     * cookie not null
+     * 无需 ds   需 cookie
      */
     fun getUserInfo(askInfoData: AskInfoData<out Any>): JsonMiHoYoBack<JsonUserData>? {
         return getUrl(
             "${confData.globals.url_game_user_info}?game_biz=hk4e_cn",
-            getHeaders(askInfoData),
+            getHeaders(askInfoData.apply {
+                type = AskInfoType.GAME_SIGN
+            }),
             object : ParameterizedTypeReference<JsonMiHoYoBack<JsonUserData>>() {}
         )?.body
     }
@@ -66,7 +67,9 @@ object AskUtils {
         if (askInfoData.sinData == null) return null
         return getUrl(
             "${confData.globals.url_game_sign_info}?region=${askInfoData.sinData!!.region}&act_id=${confData.globals.act_id}&uid=${askInfoData.sinData!!.uid}",
-            getHeaders(askInfoData),
+            getHeaders(askInfoData.apply {
+                type = AskInfoType.GAME_SIGN
+            }),
             JsonSignData::class.java
         )?.body
     }
@@ -78,10 +81,15 @@ object AskUtils {
         askInfoData.sinData!!.act_id = confData.globals.act_id
         // log.warn("----------     $headers    ${askInfoData.sinData}")
         /// {"region":"cn_gf01","uid":"198904404","act_id":"e202009291139501"}
+        log.info("${getHeaders(askInfoData).apply {
+            add("DS", getDS())
+        }}")
         return postUrl(
             confData.globals.url_game_sign,
             askInfoData.sinData!!,
-            getHeaders(askInfoData).apply {
+            getHeaders(askInfoData.apply {
+                type = AskInfoType.GAME_SIGN
+            }).apply {
                 add("DS", getDS())
             },
             JsonSignOkData::class.java
@@ -107,11 +115,12 @@ object AskUtils {
     // 获取 任务列表
     // 无需 ds  需 cookie
     fun getBbsTaskList(askInfoData: AskInfoData<out Any>): JsonMiHoYoBack<BbsUserTaskListData>? {
-        askInfoData.type = AskInfoType.BBS_SIGN
         // log.info("------- $httpHeaders   ${confData.globals.url_bbs_task_list}")
         return getUrl(
             confData.globals.url_bbs_task_list,
-            getHeaders(askInfoData),
+            getHeaders(askInfoData.apply {
+                type = AskInfoType.GAME_SIGN
+            }),
             BbsUserTaskListData::class.java
         )?.body
     }
@@ -120,15 +129,17 @@ object AskUtils {
     // 签到
     //  需 ds  需 cookie
     fun postBbsSign(askInfoData: AskInfoData<PostBbsSignData>): JsonMiHoYoBack<PointsData>? {
-        askInfoData.type = AskInfoType.BBS_SIGN
         val gameKeyData = getListGameKeyData(2) ?: return null
-        askInfoData.sinData = PostBbsSignData("${gameKeyData.id}")
         // log.info("------------ ${getHeaders(askInfoData)}    ${confData.globals.url_bbs_sign}   ${PostBbsSignData("${gameKeyData.id}")}")
         return postUrl(
             confData.globals.url_bbs_sign,
             askInfoData.sinData!!,
-            getHeaders(askInfoData).apply {
-                add("DS", getDS2(mapper.writeValueAsString(values)))
+            getHeaders(askInfoData.apply {
+                sinData = PostBbsSignData("${gameKeyData.id}")
+                type = AskInfoType.BBS_SIGN
+            }).apply {
+                log.info(mapper.writeValueAsString(values))
+                add("DS", getDS2(mapper.writeValueAsString(askInfoData.sinData)))
             },
             PointsData::class.java
         )?.body
@@ -138,11 +149,12 @@ object AskUtils {
     // 看帖  sinData 文章id
     //  无需 ds  需 cookie
     fun getBbsLook(askInfoData: AskInfoData<String>): JsonMiHoYoBack<Any>? {
-        askInfoData.type = AskInfoType.BBS_SIGN
         // log.info("----------- ${confData.globals.url_bbs_detail}${askInfoData.sinData}     ${getHeaders(askInfoData)}")
         return getUrl(
             "${confData.globals.url_bbs_detail}${askInfoData.sinData}",
-            getHeaders(askInfoData),
+            getHeaders(askInfoData.apply {
+                type = AskInfoType.BBS_SIGN
+            }),
             Any::class.java
         )?.body
     }
@@ -151,11 +163,12 @@ object AskUtils {
     //  需 ds  需 cookie
     fun postBbsVote(askInfoData: AskInfoData<PostBbsLikeData>): JsonMiHoYoBack<Any>? {
         askInfoData.sinData ?: return null
-        askInfoData.type = AskInfoType.BBS_SIGN
         return postUrl(
             confData.globals.url_bbs_vote,
             askInfoData.sinData!!,
-            getHeaders(askInfoData).apply {
+            getHeaders(askInfoData.apply {
+                type = AskInfoType.BBS_SIGN
+            }).apply {
                 add("DS", getDS(false))
             },
             Any::class.java
@@ -165,10 +178,11 @@ object AskUtils {
     // 分享   sinData 文章id
     //  无需 ds  需 cookie
     fun getBbsShare(askInfoData: AskInfoData<String>): JsonMiHoYoBack<Any>? {
-        askInfoData.type = AskInfoType.BBS_SIGN
         return getUrl(
             "${confData.globals.url_bbs_share}${askInfoData.sinData}",
-            getHeaders(askInfoData).apply {
+            getHeaders(askInfoData.apply {
+                type = AskInfoType.BBS_SIGN
+            }).apply {
                 add("DS", getDS(false))
             },
             Any::class.java
@@ -313,7 +327,7 @@ object AskUtils {
                         "User-Agent",
                         "Mozilla/5.0 (Linux; Android 11; MI 9 Build/RKQ1.200826.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/83.0.4103.106 Mobile Safari/537.36 miHoYoBBS/${confData.globals.app_version}"
                     )
-                    add("Cookie", "account_id=${askInfoData.accountId};cookie_token=${askInfoData.cookieToken}")
+                    add("Cookie", askInfoData.cookie)
                 }
 
                 AskInfoType.BBS_SIGN -> {
@@ -358,22 +372,21 @@ object AskUtils {
     }
 
 
-    fun getGameCookieToken(valueStr: String): String? =
-        getCookieValue(valueStr, "cookie_token")  // 这个属于米游社 cookie_token
-
-    fun getGameAccountId(valueStr: String): String? = getCookieValue(valueStr, "account_id")      // 这个属于米游社 account_id
-    fun getGameCookieUUid(valueStr: String): String? = getCookieValue(valueStr, "_MHYUUID")       // 这个属于米游社uuid
-    fun getCookieValue(valueStr: String, key: String): String? {
-        cookieToMap(valueStr)?.let {
+    fun getCookieAccountId(cookieStr: String): String? = getCookieValue(cookieStr, "account_id")        // 这个属于米游社 account_id
+    fun getCookieCookieToken(cookieStr: String): String? = getCookieValue(cookieStr, "cookie_token")    // 这个属于米游社 cookie_token
+    fun getCookieLoginTicket(cookieStr: String): String? = getCookieValue(cookieStr, "login_ticket")    // 这个属于米游社 login_ticket
+    fun getCookieUUid(cookieStr: String): String? = getCookieValue(cookieStr, "_MHYUUID")               // 这个属于米游社 uuid
+    fun getCookieValue(cookieStr: String, key: String): String? {
+        cookieToMap(cookieStr)?.let {
             return it[key]
         }
         return null
     }
 
 
-    private fun cookieToMap(valueStr: String): Map<String, String>? {
+    private fun cookieToMap(cookieStr: String): Map<String, String>? {
         return try {
-            var value = valueStr
+            var value = cookieStr
             val map: MutableMap<String, String> = HashMap()
             value = value.replace(" ", "")
             if (value.contains(";")) {
@@ -406,19 +419,25 @@ object AskUtils {
     // 判断字符串cookie 是否有效   有效 cookieToKen   无效 null  已存在 "1"
     fun isStrCookieTokenEfficient(
         userMapper: UserMapper,
-        cookieToken: String?
+        cookie: String?
     ): String? {
-        if (cookieToken == null
-            || cookieToken.isEmpty()
-            || cookieToken.length > 100
-            || cookieToken.length < 5
+        if (cookie == null
+            || cookie.isEmpty()
+            || cookie.length >= 5000
+            || cookie.length < 50
         ) {
             return null
         }
-        if (SqlUtils.isGameLoginTicket(userMapper, cookieToken)) {
+        val cookieCookieToken = getCookieCookieToken(cookie) ?: return null
+        val cookieAccountId = getCookieAccountId(cookie) ?: return null
+        if (cookieCookieToken.isEmpty() || cookieAccountId.isEmpty()) {
+            return null
+        }
+
+        if (SqlUtils.isCookieToken(userMapper, cookieCookieToken)) {
             return "1"
         }
-        return cookieToken
+        return cookieCookieToken
     }
 
 

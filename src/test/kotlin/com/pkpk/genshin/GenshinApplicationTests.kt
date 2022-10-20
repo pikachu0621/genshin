@@ -23,8 +23,8 @@ class GenshinApplicationTests {
 
     // private val confData = mapper.readValue<ConfData>(confJson)
 
-   /* @Autowired
-    var genshinSignTask: GenshinSignTask? = null*/
+    // @Autowired
+    // var genshinSignTask: GenshinSignTask? = null
 
     @Test
     fun contextLoads() {

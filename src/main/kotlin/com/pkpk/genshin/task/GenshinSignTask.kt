@@ -79,7 +79,7 @@ class GenshinSignTask {
      */
     @Scheduled(cron = "0 30 0 * * ?")
     fun startGenshinSignTask() {
-        log.error("=========== 开始任务 ===========")
+        log.info("=========== 开始任务 ===========")
 
         userMapper ?: return log.error("userMapper null")
 
@@ -115,7 +115,7 @@ class GenshinSignTask {
             startBbsRewardTask(it, recordModer)
         }
 
-        log.error("=========== 开始结束 ===========")
+        log.info("=========== 结束任务 ===========")
     }
 
 
@@ -136,7 +136,7 @@ class GenshinSignTask {
             user.uuid,
             user.accountId,
             user.sToken,
-            user.cookieToken,
+            user.cookie,
             PostSignData(user.region, user.uid)
         )
         val userSignInfo = AskUtils.getUserSignInfo(askInfoData) ?: let {
@@ -157,12 +157,14 @@ class GenshinSignTask {
             putGameSqlErrMsg(record, "你已手动签到！")
             return
         }
-
+        // userSignInfo.data!!
         // 签到
         val postUserSignIn = AskUtils.postUserSignIn(askInfoData) ?: let {
             putGameSqlErrMsg(record, "网络错误！")
             return
         }
+         log.info("$postUserSignIn")
+
         // 防止风控  暂停
         Thread.sleep(Random.nextLong(2000, 3000))
 
@@ -172,7 +174,7 @@ class GenshinSignTask {
         }
 
         if (postUserSignIn.data.success != 0) {
-            putGameSqlErrMsg(record, "触发风控！")
+            putGameSqlErrMsg(record, "触发验证码！")
             return
         }
 

@@ -19,7 +19,7 @@ object SqlUtils {
      * 查询数据库米游社 cookie_token 是否存在
      * @param cookieToken cookie_token
      */
-    fun isGameLoginTicket(userMapper: UserMapper, cookieToken: String): Boolean {
+    fun isCookieToken(userMapper: UserMapper, cookieToken: String): Boolean {
         val selectList = queryByField(userMapper, "cookie_token", cookieToken)
         return selectList != null && selectList.isNotEmpty()
     }
