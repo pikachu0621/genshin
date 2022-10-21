@@ -27,8 +27,32 @@ main {
 }
 
 
+.footer-min{
+    position: relative;
+    height: 100vh;
+    width: 100vw;
+    background: url(../img/bg_image1.jpg) no-repeat scroll center center/cover rgba(255, 255, 255, 0.8);
+   /* background: none repeat scroll 0 0 white;*/ /*  #DDB0B3 */
+    font-size: 12px;
+    color: #CCC;
+    text-align: center;
+}
+.footer_root_min_mask{
+    position: fixed;
+    height: 100vh;
+    width: 100vw;
+    background-color: rgba(255, 255, 255, 0.94);
+}
+.footer-root-min {
+    position: fixed;
+    width: 90vw;
+    left: 5vw;
+    top: 10vh;
+}
 
-footer {
+
+
+.footer-max {
     position: relative;
     z-index: -2;
     height: 90vh;
@@ -38,7 +62,7 @@ footer {
     text-align: center;
 }
 
-footer #footer_root, .introduce{
+.footer-max .footer-root-max, .introduce{
     position: fixed;
     z-index: 1;
     top: 20vh;

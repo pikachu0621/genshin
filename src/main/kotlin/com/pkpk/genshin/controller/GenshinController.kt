@@ -39,7 +39,7 @@ class GenshinController {
             if (isdUserExist) {
                 val selectGameUid = SqlUtils.selectGameUid(it, uid)
                 val queryByIdRanking = it.queryByIdRanking(selectGameUid!!.id!!)
-                if(selectGameUid.isLock){
+                if(selectGameUid.isBoolLock){
                     return Result.err("该用户已被拉黑", ERROR)
                 }
                 return Result.ok(
@@ -78,7 +78,7 @@ class GenshinController {
         userMapper?.let {
             if (SqlUtils.isdUserExist(it, uid)) {
                 val selectGameUid = SqlUtils.selectGameUid(it, uid)!!
-                if(selectGameUid.isLock){
+                if(selectGameUid.isBoolLock){
                     return Result.err("该用户已被拉黑", ERROR)
                 }
                 if (selectGameUid.password == null || selectGameUid.password!!.isEmpty()) {
@@ -121,7 +121,7 @@ class GenshinController {
                 return Result.err("用户不存在", ERROR_USER_EXIST)
             }
             val gameData = SqlUtils.selectGameUid(it, uid)!!
-            if(gameData.isLock){
+            if(gameData.isBoolLock){
                 return Result.err("该用户已被拉黑", ERROR)
             }
             if (gameData.password != null && gameData.password!!.isNotEmpty()) {
@@ -161,20 +161,21 @@ class GenshinController {
                     return Result.err("cookie 对应的uid用户已存在", ERROR_USER_EXIST)
                 }
 
-                val sToken: String? = AskUtils.getCookieLoginTicket(cookie)?.let { login_ticket ->
+                val sTokenStr: String? = AskUtils.getCookieLoginTicket(cookie)?.let { login_ticket ->
                     AskUtils.getBbsSToken(login_ticket, gameData.accountId)
                 }
+                // log.info("+++++++++++++++ $sTokenStr")
                 val uuid: String = AskUtils.getCookieUUid(cookie) ?: gameData.uuid
                 gameData.apply {
                     this.uuid = uuid
                     region = game.region
                     cookieToken = sqlCookieToken
                     this.cookie = cookie
-                    this.sToken = sToken ?: this.sToken
+                    sToken = sTokenStr ?: sToken
                     password = newPassword
-                    isCToken = true
-                    isSToken = if( sToken == null )  this.isSToken else true
-                    isVCode = false
+                    isBoolCToken = true
+                    isBoolSToken = if( sTokenStr == null )  this.isBoolSToken else true
+                    isBoolVCode = false
                 }
                 it.updateById(gameData)
                 // 排行
@@ -182,7 +183,7 @@ class GenshinController {
                 log.info("排行 ${game.ranking}")
 
 
-                val msg = sToken?.let {
+                val msg = sTokenStr?.let {
                     "${game.nickname} 【每日签到添加成功[√] | 米游币签到添加成功[√]】"
                 } ?: let {
                     "${game.nickname} 【每日签到添加成功[√] | 米游币签到添加失败[×]】"
@@ -289,7 +290,7 @@ class GenshinController {
         userMapper?.let {
             if (SqlUtils.isdUserExist(it, uid)) {
                 val selectGameUid = SqlUtils.selectGameUid(it, uid)!!
-                if(selectGameUid.isLock){
+                if(selectGameUid.isBoolLock){
                     return Result.err("该用户已被拉黑", ERROR)
                 }
                 if (selectGameUid.password == null || selectGameUid.password!!.isEmpty()) {
@@ -337,7 +338,7 @@ class GenshinController {
                         }
                     })
 
-                    return Result.ok(RecordList(selectGameUid.isCToken, selectGameUid.isSToken, selectGameUid.isVCode, recordModerList))
+                    return Result.ok(RecordList(selectGameUid.isBoolCToken, selectGameUid.isBoolSToken, selectGameUid.isBoolVCode, recordModerList))
                 }
                 if (!selectGameUid.password.equals(password)) {
                     return Result.err("密码错误", ERROR_USER_PWS_ERR)
@@ -353,7 +354,7 @@ class GenshinController {
                 })
 
                 //////////////////////////////
-                return Result.ok(RecordList(selectGameUid.isCToken, selectGameUid.isSToken, selectGameUid.isVCode, recordModerList))
+                return Result.ok(RecordList(selectGameUid.isBoolCToken, selectGameUid.isBoolSToken, selectGameUid.isBoolVCode, recordModerList))
             } catch (e: Exception) {
                 println(e.message)
                 return Result.err("没有记录！", ERROR)

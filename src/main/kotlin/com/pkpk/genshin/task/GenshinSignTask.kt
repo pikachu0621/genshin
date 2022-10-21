@@ -105,7 +105,7 @@ class GenshinSignTask {
             val recordModer = RecordModer(it.uid)
             recordMapper.insert(recordModer)
 
-            if (it.isLock) {
+            if (it.isBoolLock) {
                 putSqlErrMsg(recordModer, "已拉黑！")
                 return
             }
@@ -128,12 +128,12 @@ class GenshinSignTask {
         recordMapper!!
         userMapper!!
 
-        if (!user.isCToken) {
+        if (!user.isBoolCToken) {
             putGameSqlErrMsg(record, "0 - ctoken 已失效！")
             return
         }
 
-        if (user.isVCode) {
+        if (user.isBoolVCode) {
             putGameSqlErrMsg(record, "已触发验证码！")
             return
         }
@@ -154,7 +154,7 @@ class GenshinSignTask {
 
 
         if (userSignInfo.retcode != 0) {
-            user.isCToken = false
+            user.isBoolCToken = false
             userMapper.updateById(user)
             putGameSqlErrMsg(record, "1 - ctoken 已失效！")
             return
@@ -180,7 +180,7 @@ class GenshinSignTask {
         }
 
         if (postUserSignIn.data.success != 0) {
-            user.isVCode = true
+            user.isBoolVCode = true
             userMapper.updateById(user)
             putGameSqlErrMsg(record, "触发验证码！")
             return
@@ -208,7 +208,7 @@ class GenshinSignTask {
         userMapper!!
 
 
-        if (!user.isSToken) {
+        if (!user.isBoolSToken) {
             putBbsSqlErrMsg(record, "00 - stoken 已失效！")
             return
         }
@@ -259,7 +259,7 @@ class GenshinSignTask {
         }
         // log.info("$bbsTaskList")
         if (bbsTaskList.retcode != 0) {
-            user.isSToken = false
+            user.isBoolSToken = false
             userMapper.updateById(user)
             putBbsSqlErrMsg(record, "01 - stoken 已失效！")
             return

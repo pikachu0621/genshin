@@ -5,6 +5,8 @@ new Vue({
         element: document.documentElement,
         dialogWidth: 35,
         inputUid: '',
+        footerClassMinType: true,
+        minInquireTableHeight: 0,
 
         // 添加话框
         dialogAddUserVisible: false,
@@ -28,6 +30,7 @@ new Vue({
             cookie: '',
             password: ''
         },
+        formReplaceUserData: {},
         dialogReplaceLoading: false,
 
         // 解绑
@@ -259,7 +262,7 @@ new Vue({
                 _this.dialogReplaceVisible = true
                 _this.dialogPwsVisible = false
                 _this.dialogPwsLoading = false
-
+                _this.formReplaceUserData = data.result
                 _this.formReplaceUser.cookie = data.result.cookie
                 _this.formReplaceUser.password = data.result.password
             }, function (e) {
@@ -472,8 +475,11 @@ new Vue({
         windowDialogAdjustment() {
             if (this.element.clientWidth < 1200) {
                 this.dialogWidth = 60
+                this.footerClassMinType = false
                 if (this.element.clientWidth < 992) {
                     this.dialogWidth = 80
+                    this.footerClassMinType = true
+                    this.minInquireTableHeight = this.element.clientHeight - 220
                 }
                 this.unbindStr = null
                 this.inquireStr = null
@@ -481,6 +487,7 @@ new Vue({
                 this.replaceStr = null
             } else {
                 this.dialogWidth = 40
+                this.footerClassMinType = false
                 this.addStr = "添加"
                 this.inquireStr = "查询"
                 this.unbindStr = "解除"

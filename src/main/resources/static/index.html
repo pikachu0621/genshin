@@ -19,6 +19,7 @@
 			:visible.sync="dialogAddUserVisible"
 			:close-on-click-modal="false"
 			:width="dialogWidth + 'vw'"
+			:fullscreen="footerClassMinType"
 			:append-to-body='true'>
 		<el-form label-position="top" label-width="80px" :model="formAddUser">
 			<el-form-item label="cookie">
@@ -47,6 +48,7 @@
 	<!--添加角色成功 -->
 	<el-dialog
 			title="添加完成"
+			:fullscreen="footerClassMinType"
 			:visible.sync="dialogAddSuccessVisible"
 			:width="dialogWidth + 'vw'"
 			:close-on-click-modal="false"
@@ -82,6 +84,7 @@
 			title="请键入密码"
 			:visible.sync="dialogPwsVisible"
 			:width="dialogWidth + 'vw'"
+			:fullscreen="footerClassMinType"
 			:close-on-click-modal="false"
 			:append-to-body='true'>
 		<el-input v-model="dialogPwsInputPws"
@@ -104,7 +107,25 @@
 			:visible.sync="dialogReplaceVisible"
 			:width="dialogWidth + 'vw'"
 			:close-on-click-modal="false"
+			:fullscreen="footerClassMinType"
 			:append-to-body='true'>
+		
+		<el-tooltip placement="top" :content="formReplaceUserData.isBoolCToken ? '正常' : '异常：每日签到将终止，建议更新cookie'">
+			<el-tag :type="formReplaceUserData.isBoolCToken ? 'success' : 'danger'">
+				{{formReplaceUserData.isBoolCToken ? 'cookie正常' : 'cookie失效'}}
+			</el-tag>
+		</el-tooltip>
+		<el-tooltip placement="top" :content="formReplaceUserData.isBoolSToken ? '正常' : '异常：米游币任务将终止，建议更新cookie'">
+			<el-tag :type="formReplaceUserData.isBoolSToken ? 'success' : 'danger'">
+				{{formReplaceUserData.isBoolSToken ? 'stoken正常' : 'stoken失效'}}
+			</el-tag>
+		</el-tooltip>
+		<el-tooltip placement="top" :content="formReplaceUserData.isBoolVCode ? '异常：每日签到将终止，建议在米游社里手动签到7天，然后再更新cookie' : '正常'">
+			<el-tag :type="formReplaceUserData.isBoolVCode ? 'danger' : 'success'">
+				{{formReplaceUserData.isBoolVCode ? '触发验证码' : '未触发验证码'}}
+			</el-tag>
+		</el-tooltip>
+		
 		<el-form label-position="top" label-width="80px" :model="formReplaceUser">
 			<el-form-item label="cookie (空为不修改， 如果你只想修改密码这项可以为空)">
 				<el-input v-model="formReplaceUser.cookie"
@@ -136,6 +157,7 @@
 			title="是否解绑"
 			:visible.sync="dialogUnbindVisible"
 			:width="dialogWidth + 'vw'"
+			:fullscreen="footerClassMinType"
 			:close-on-click-modal="false"
 			:append-to-body='true'>
         <span style="margin-bottom: 20px;display: block">
@@ -154,6 +176,7 @@
 	<!--查询数据-->
 	<el-dialog
 			title="查询"
+			:fullscreen="footerClassMinType"
 			:visible.sync="dialogInquireVisible"
 			:width="dialogWidth + 5  + 'vw'"
 			:append-to-body='false'
@@ -189,13 +212,12 @@
 			</el-tag>
 		</el-tooltip>
 		
-		
 		<el-table style="margin-top: 20px"
 				  :data="tableData"
 				  stripe
 				  border
 				  highlight-current-row
-				  height="50vh">
+				  :height="footerClassMinType ? minInquireTableHeight : '50vh'">
 			<el-table-column prop="time" label="日期"></el-table-column>
 			<el-table-column prop="game" label="签到任务"></el-table-column>
 			<el-table-column prop="bbs" label="米游币任务"></el-table-column>
@@ -209,14 +231,16 @@
 	</el-dialog>
 	
 	
-	<main class="mui-content">
+	<main class="mui-content" v-show="!footerClassMinType">
 		<div class="quadrilateral"></div>
 		<h2 id="title_id" class="title text-center animated bounce">米游社自动签到</h2>
 		<div class="arrow animated bounce" v-on:click="autoScroll()" v-on:mouseover="autoScroll()"></div>
 	</main>
 	
-	<footer class="mui-content">
-		<div id="footer_root">
+	<footer :class="footerClassMinType ? 'footer-min mui-content' : 'footer-max mui-content'">
+		<div class="footer_root_min_mask" v-show="footerClassMinType"></div>
+		<div id="footer_root"
+			 :class="footerClassMinType ? 'footer-root-min' : 'footer-root-max'">
 			<el-row>
 				<el-col :span="14"
 						:xl="14"
