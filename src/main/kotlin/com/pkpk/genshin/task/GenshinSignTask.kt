@@ -75,9 +75,9 @@ class GenshinSignTask {
     /**
      * 原神签到任务
      *
-     * 签到计划执行时间(每天00:30:00)
+     * 签到计划执行时间(每天00:10:00)
      */
-    @Scheduled(cron = "0 30 0 * * ?")
+    @Scheduled(cron = "0 10 0 * * ?")
     fun startGenshinSignTask() {
         log.info("=========== 开始任务 ===========")
 
@@ -89,6 +89,7 @@ class GenshinSignTask {
 
         if (userList == null || userList.isEmpty()) {
             log.error("没有待执行用户")
+            log.info("=========== 结束任务 ===========")
             return
         }
 
@@ -127,8 +128,13 @@ class GenshinSignTask {
         recordMapper!!
         userMapper!!
 
-        if (!user.isCookieAvailable) {
-            putSqlErrMsg(record, "cookie 已失效！")
+        if (!user.isCToken) {
+            putGameSqlErrMsg(record, "0 - ctoken 已失效！")
+            return
+        }
+
+        if (user.isVCode) {
+            putGameSqlErrMsg(record, "已触发验证码！")
             return
         }
 
@@ -148,9 +154,9 @@ class GenshinSignTask {
 
 
         if (userSignInfo.retcode != 0) {
-            user.isCookieAvailable = false
+            user.isCToken = false
             userMapper.updateById(user)
-            putGameSqlErrMsg(record, "cookie 已失效！")
+            putGameSqlErrMsg(record, "1 - ctoken 已失效！")
             return
         }
         if (userSignInfo.data!!.is_sign) {
@@ -163,7 +169,7 @@ class GenshinSignTask {
             putGameSqlErrMsg(record, "网络错误！")
             return
         }
-         log.info("$postUserSignIn")
+        // log.info("$postUserSignIn")
 
         // 防止风控  暂停
         Thread.sleep(Random.nextLong(2000, 3000))
@@ -174,6 +180,8 @@ class GenshinSignTask {
         }
 
         if (postUserSignIn.data.success != 0) {
+            user.isVCode = true
+            userMapper.updateById(user)
             putGameSqlErrMsg(record, "触发验证码！")
             return
         }
@@ -200,12 +208,12 @@ class GenshinSignTask {
         userMapper!!
 
 
-        if (!user.isCookieAvailable) {
-            putSqlErrMsg(record, "cookie 已失效！")
+        if (!user.isSToken) {
+            putBbsSqlErrMsg(record, "00 - stoken 已失效！")
             return
         }
         user.sToken ?: let {
-            putBbsSqlErrMsg(record, "无 sToken 米游社不进行签到")
+            putBbsSqlErrMsg(record, "无 stoken 米游社不进行签到")
             return
         }
 
@@ -249,11 +257,11 @@ class GenshinSignTask {
             putBbsSqlErrMsg(record, "任务列表-网络错误！")
             return
         }
-
+        // log.info("$bbsTaskList")
         if (bbsTaskList.retcode != 0) {
-            user.isCookieAvailable = false
+            user.isSToken = false
             userMapper.updateById(user)
-            putBbsSqlErrMsg(record, "cookie 已失效！")
+            putBbsSqlErrMsg(record, "01 - stoken 已失效！")
             return
         }
 

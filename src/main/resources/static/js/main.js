@@ -42,6 +42,9 @@ new Vue({
         successNum: 0,
         errorNum: 0,
         tableData: [],
+        isCToken: false,
+        isSToken: false,
+        isVCode: true,
 
         addStr: "添加", replaceStr: "更新", inquireStr: "查询", unbindStr: "解除",
         addLoading: false, replaceLoading: false, inquireLoading: false, unbindLoading: false,
@@ -290,11 +293,17 @@ new Vue({
                  isGameOk: true
                  logoMsg: "[game](签到完成), [bbs](签到任务你已手动完成！), [bbs](论坛任务部分完成！)"
                  time: "2022-10-18 13:55:43"*/
+
+                // console.log(data)
+                _this.isCToken = data.result.is_ctoken
+                _this.isSToken = data.result.is_stoken
+                _this.isVCode = data.result.is_vcode
+
                 _this.tableData = []
-                if (data.result.length <= 0){
+                if (data.result.list.length <= 0){
                     return
                 }
-                data.result.forEach(function (v, i) {
+                data.result.list.forEach(function (v, i) {
 
                     let game = '———'
                     if (v.gameName != null && v.gameName.length > 0) {
@@ -316,11 +325,14 @@ new Vue({
                         msg = '部分成功'
                     } else {
                         let m = '任务失败'
-                        if (v.logoMsg.includes('cookie') ||  v.logoMsg.includes('cook') ){
-                           m = 'cookie失效 请更新'
+                        if (v.logoMsg.includes('ctoken')){
+                           m = 'ctoken失效'
+                        }
+                        if (v.logoMsg.includes('stoken')){
+                            m = 'stoken失效'
                         }
                         if (v.logoMsg.includes('触发验证码') ){
-                            m = '触发验证码 请更新cookie'
+                            m = '触发验证码'
                         }
                         msg = m
                         _this.errorNum++

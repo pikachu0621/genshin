@@ -39,6 +39,9 @@ class GenshinController {
             if (isdUserExist) {
                 val selectGameUid = SqlUtils.selectGameUid(it, uid)
                 val queryByIdRanking = it.queryByIdRanking(selectGameUid!!.id!!)
+                if(selectGameUid.isLock){
+                    return Result.err("该用户已被拉黑", ERROR)
+                }
                 return Result.ok(
                     InquireUser(
                         "用户已存在",
@@ -74,8 +77,11 @@ class GenshinController {
             return Result.err("uid 有误", ERROR_PARAMETER)
         userMapper?.let {
             if (SqlUtils.isdUserExist(it, uid)) {
-                val selectGameUid = SqlUtils.selectGameUid(it, uid)
-                if (selectGameUid!!.password == null || selectGameUid.password!!.isEmpty()) {
+                val selectGameUid = SqlUtils.selectGameUid(it, uid)!!
+                if(selectGameUid.isLock){
+                    return Result.err("该用户已被拉黑", ERROR)
+                }
+                if (selectGameUid.password == null || selectGameUid.password!!.isEmpty()) {
                     return Result.ok(selectGameUid)
                 }
                 if (!selectGameUid.password.equals(password)) {
@@ -115,6 +121,9 @@ class GenshinController {
                 return Result.err("用户不存在", ERROR_USER_EXIST)
             }
             val gameData = SqlUtils.selectGameUid(it, uid)!!
+            if(gameData.isLock){
+                return Result.err("该用户已被拉黑", ERROR)
+            }
             if (gameData.password != null && gameData.password!!.isNotEmpty()) {
                 if (!gameData.password.equals(oldPassword)) {
                     return Result.err("密码错误", ERROR_USER_PWS_ERR)
@@ -140,7 +149,7 @@ class GenshinController {
                     cookie = cookie
                 )
             )
-            log.info("$userInfo")
+            // log.info("$userInfo")
 
             userInfo?.let { ud ->
                 if (ud.retcode != 0) {
@@ -163,7 +172,9 @@ class GenshinController {
                     this.cookie = cookie
                     this.sToken = sToken ?: this.sToken
                     password = newPassword
-                    isCookieAvailable = true
+                    isCToken = true
+                    isSToken = if( sToken == null )  this.isSToken else true
+                    isVCode = false
                 }
                 it.updateById(gameData)
                 // 排行
@@ -210,7 +221,7 @@ class GenshinController {
             val sqlCookieToken =
                 AskUtils.isStrCookieTokenEfficient(it, cookie) ?: return Result.err("cookie 无效", ERROR_COOKIE)
             if (sqlCookieToken == "1") {
-                return Result.err("cookie 已存在", ERROR_COOKIE)
+                return Result.err("cookie 用户已存在", ERROR_COOKIE)
             }
             val uuid: String = AskUtils.getCookieUUid(cookie) ?: UUID.randomUUID().toString()
             val userInfo: JsonMiHoYoBack<JsonUserData>? =
@@ -247,7 +258,7 @@ class GenshinController {
                 // 排行
                 val selectGameUid = SqlUtils.selectGameUid(it, game.game_uid)
                 game.ranking = it.queryByIdRanking(selectGameUid!!.id!!).rank
-                log.info("排行 ${game.ranking}")
+                // log.info("排行 ${game.ranking}")
 
                 val msg = sToken?.let {
                     game.addResults[JsonUserData.NameKey.BBS_SING.KEY] = JsonUserData.AddResults(true, "米游币任务添加成功")
@@ -277,8 +288,11 @@ class GenshinController {
         log.info("api - [unbind-user] $uid")
         userMapper?.let {
             if (SqlUtils.isdUserExist(it, uid)) {
-                val selectGameUid = SqlUtils.selectGameUid(it, uid)
-                if (selectGameUid!!.password == null || selectGameUid.password!!.isEmpty()) {
+                val selectGameUid = SqlUtils.selectGameUid(it, uid)!!
+                if(selectGameUid.isLock){
+                    return Result.err("该用户已被拉黑", ERROR)
+                }
+                if (selectGameUid.password == null || selectGameUid.password!!.isEmpty()) {
                     it.deleteById(selectGameUid)
                     return Result.ok(null, "解绑完成!")
                 }
@@ -323,7 +337,7 @@ class GenshinController {
                         }
                     })
 
-                    return Result.ok(recordModerList)
+                    return Result.ok(RecordList(selectGameUid.isCToken, selectGameUid.isSToken, selectGameUid.isVCode, recordModerList))
                 }
                 if (!selectGameUid.password.equals(password)) {
                     return Result.err("密码错误", ERROR_USER_PWS_ERR)
@@ -339,7 +353,7 @@ class GenshinController {
                 })
 
                 //////////////////////////////
-                return Result.ok(recordModerList)
+                return Result.ok(RecordList(selectGameUid.isCToken, selectGameUid.isSToken, selectGameUid.isVCode, recordModerList))
             } catch (e: Exception) {
                 println(e.message)
                 return Result.err("没有记录！", ERROR)

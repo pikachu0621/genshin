@@ -22,13 +22,17 @@ data class UserModer(
     var password: String? = null,
     @TableField(value = "add_time", updateStrategy = FieldStrategy.IGNORED)
     var addTime: String? = null,
-    var isLock: Boolean = false,             //    (ture = 1 = 锁定 / false = 0 = 未锁定 )
+    var isLock: Boolean = false,             // 是否拉黑   (ture = 1 = 锁定 / false = 0 = 未锁定 )
     @TableField(value = "up_time", updateStrategy = FieldStrategy.IGNORED)
     var upTime: String? = null,
-    @TableField(value = "is_cookie_available")
-    var isCookieAvailable: Boolean = true,   // (ture = 1 = 可用 / false = 0 = 不可用 )
+    @TableField(value = "is_ctoken")
+    var isCToken: Boolean = true,           // ctoken(cookie_token) 是否过期 (ture = 1 = 可用 / false = 0 = 不可用 )
+    @TableField(value = "is_stoken")
+    var isSToken: Boolean = true,           // stoken 是否过期 (ture = 1 = 可用 / false = 0 = 不可用 )
+    @TableField(value = "is_vcode")
+    var isVCode: Boolean = false,           //   是否触发验证码  (ture = 1 = 触发 / false = 0 = 未触发 )
     @TableField(exist = false)
-    var ranking: Long = -1                   // 排行
+    var ranking: Long = -1                 // 排行
 ) : Serializable {
     constructor(
         uid: String,
@@ -54,6 +58,8 @@ data class UserModer(
         addTime: String? = null,
         isLock: Boolean = false,
         upTime: String? = null,
-        isCookieAvailable: Boolean = true,
-    ) : this(id, uid, region, uuid, accountId, sToken, cookieToken, cookie, password, addTime, isLock, upTime, isCookieAvailable, -1)
+        isCToken: Boolean = true,
+        isSToken: Boolean = true,
+        isVCode: Boolean = false,
+    ) : this(id, uid, region, uuid, accountId, sToken, cookieToken, cookie, password, addTime, isLock, upTime, isCToken, isSToken, isVCode, -1)
 }

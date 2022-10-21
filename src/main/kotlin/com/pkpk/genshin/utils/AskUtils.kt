@@ -81,9 +81,9 @@ object AskUtils {
         askInfoData.sinData!!.act_id = confData.globals.act_id
         // log.warn("----------     $headers    ${askInfoData.sinData}")
         /// {"region":"cn_gf01","uid":"198904404","act_id":"e202009291139501"}
-        log.info("${getHeaders(askInfoData).apply {
+        /*log.info("${getHeaders(askInfoData).apply {
             add("DS", getDS())
-        }}")
+        }}")*/
         return postUrl(
             confData.globals.url_game_sign,
             askInfoData.sinData!!,
@@ -138,7 +138,7 @@ object AskUtils {
                 sinData = PostBbsSignData("${gameKeyData.id}")
                 type = AskInfoType.BBS_SIGN
             }).apply {
-                log.info(mapper.writeValueAsString(values))
+                // log.info(mapper.writeValueAsString(values))
                 add("DS", getDS2(mapper.writeValueAsString(askInfoData.sinData)))
             },
             PointsData::class.java

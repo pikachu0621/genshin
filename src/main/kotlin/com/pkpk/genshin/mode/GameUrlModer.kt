@@ -44,6 +44,13 @@ data class ConfData(
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+data class RecordList<T>(
+    val is_ctoken : Boolean,
+    val is_stoken : Boolean,  //
+    val is_vcode : Boolean,  // 是否触发验证码  true 触发
+    val list: List<T>
+)
+
 data class InquireUser(
     var msg: String,
     var isExist: Boolean,

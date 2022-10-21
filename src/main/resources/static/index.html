@@ -65,10 +65,10 @@
 		
 		
 		<span slot="footer" class="dialog-footer">
-			<el-tag :type="gameData.addResults['game_sign'].isOk ? 'success' : 'info'">
+			<el-tag :type="gameData.addResults['game_sign'].isOk ? 'success' : 'danger'">
 				{{gameData.addResults['game_sign'].msg}}
 			</el-tag>
-			<el-tag :type="gameData.addResults['bbs_sign'].isOk ? 'success' : 'info'">
+			<el-tag :type="gameData.addResults['bbs_sign'].isOk ? 'success' : 'danger'">
 				{{gameData.addResults['bbs_sign'].msg}}
 			</el-tag>
 			<br><br>
@@ -158,6 +158,7 @@
 			:width="dialogWidth + 5  + 'vw'"
 			:append-to-body='false'
 			:close-on-click-modal="false">
+		
 		<el-radio-group v-model="radio" size="mini" v-on:change="inquireUserRecordInfo(radio)">
 			<el-radio-button label="true">正序</el-radio-button>
 			<el-radio-button label="false">倒序</el-radio-button>
@@ -170,6 +171,23 @@
 				 <el-checkbox label="金币"></el-checkbox>
 				 <el-checkbox label="默认" disabled></el-checkbox>
 			 </el-checkbox-group>-->
+		<br><br>
+		
+		<el-tooltip placement="top" :content="isCToken ? '正常' : '异常：每日签到将终止，建议更新cookie'">
+			<el-tag :type="isCToken ? 'success' : 'danger'">
+				{{isCToken ? 'cookie正常' : 'cookie失效'}}
+			</el-tag>
+		</el-tooltip>
+		<el-tooltip placement="top" :content="isSToken ? '正常' : '异常：米游币任务将终止，建议更新cookie'">
+			<el-tag :type="isSToken ? 'success' : 'danger'">
+				{{isSToken ? 'stoken正常' : 'stoken失效'}}
+			</el-tag>
+		</el-tooltip>
+		<el-tooltip placement="top" :content="isVCode ? '异常：每日签到将终止，建议在米游社里手动签到7天，然后再更新cookie' : '正常'">
+			<el-tag :type="isVCode ? 'danger' : 'success'">
+				{{isVCode ? '触发验证码' : '未触发验证码'}}
+			</el-tag>
+		</el-tooltip>
 		
 		
 		<el-table style="margin-top: 20px"
@@ -310,13 +328,13 @@
 		</div>
 	</footer>
 </div>
-<script src="js/vue/2.4.2-vue.min.js"></script>
+<!--<script src="js/vue/2.4.2-vue.min.js"></script>
 <script src="js/vue/vue-resource.min.js"></script>
-<script src="js/element-ui/index.js"></script>
+<script src="js/element-ui/index.js"></script>-->
 
-<!--<script src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
+<script src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
 <script src="https://cdn.staticfile.org/vue-resource/1.5.1/vue-resource.min.js"></script>
-<script src="https://unpkg.com/element-ui/lib/index.js"></script>-->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
 <script src="js/main.js"></script>
 </body>
 
