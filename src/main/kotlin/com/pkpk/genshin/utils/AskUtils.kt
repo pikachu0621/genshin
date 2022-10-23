@@ -97,6 +97,8 @@ object AskUtils {
     }
 
 
+
+    /////////////////////////////////////////////////////////////////////////////////////////////
     // 米游币任务
 
     // 获取帖子列表
@@ -119,7 +121,7 @@ object AskUtils {
         return getUrl(
             confData.globals.url_bbs_task_list,
             getHeaders(askInfoData.apply {
-                type = AskInfoType.GAME_SIGN
+                type = AskInfoType.BBS_SIGN
             }),
             BbsUserTaskListData::class.java
         )?.body

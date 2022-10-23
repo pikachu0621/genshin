@@ -2,7 +2,7 @@
 ==============
 >网页版
 <br>此软件仅供学习参考,不得用于非法盈利
-<br>软件为自用软件，写的很乱，后期可能会更新米游社点赞，分享，浏览帖子等
+<br>软件为自用软件，写的很乱
 > 
 > 
 >
@@ -16,18 +16,19 @@
 
 其他
 ---
->ds密码：9nQiU3AV0rJSIBWgdynfoGMGKaklfbM7   </br>
->ds密码来自：[https://github.com/AMEKENN/miHoYoSign](https://github.com/AMEKENN/miHoYoSign), [https://github.com/Womsxd/AutoMihoyoBBS](https://github.com/Womsxd/AutoMihoyoBBS)
+>部分参考：[https://github.com/AMEKENN/miHoYoSign](https://github.com/AMEKENN/miHoYoSign), [https://github.com/Womsxd/AutoMihoyoBBS](https://github.com/Womsxd/AutoMihoyoBBS)
 
 
 更新日志
 ---
+>* 更新 2022-10-23
+>* 版本 1.0.5
+>1. 修改之前字段写错问题导致米游币任务失败 GAME_SIGN -> BBS_SIGN
 
 >* 更新 2022-10-21
 >* 版本 1.0.4
 >1. 修复sql字段冲突
 >2. 优化小屏布局
-
 
 >* 更新 2022-10-21
 >* 版本 1.0.3
@@ -45,7 +46,6 @@
 >* 版本 1.0.1
 >1. 新增米游社每日米游币任务
 >2. 分离cookie
-
 
 >* 创建 2022-09-02
 >* 版本 1.0.0
