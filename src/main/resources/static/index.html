@@ -233,12 +233,12 @@
 	
 	<main class="mui-content" v-show="!footerClassMinType">
 		<div class="quadrilateral"></div>
-		<h2 id="title_id" class="title text-center animated bounce">米游社自动签到</h2>
+		<h2 id="title_id" class="title text-center animated bounce">米游社自动签到<br>{{version}}</h2>
 		<div class="arrow animated bounce" v-on:click="autoScroll()" v-on:mouseover="autoScroll()"></div>
 	</main>
 	
 	<footer :class="footerClassMinType ? 'footer-min mui-content' : 'footer-max mui-content'">
-		<div class="footer_root_min_mask" v-show="footerClassMinType"></div>
+		<div class="footer_root_min_mask" v-show="footerClassMinType"><br>米游社自动签到<br>{{version}}</div>
 		<div id="footer_root"
 			 :class="footerClassMinType ? 'footer-root-min' : 'footer-root-max'">
 			<el-row>
@@ -352,13 +352,13 @@
 		</div>
 	</footer>
 </div>
-<!--<script src="js/vue/2.4.2-vue.min.js"></script>
+<script src="js/vue/2.4.2-vue.min.js"></script>
 <script src="js/vue/vue-resource.min.js"></script>
-<script src="js/element-ui/index.js"></script>-->
+<script src="js/element-ui/index.js"></script>
 
-<script src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
+<!--<script src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
 <script src="https://cdn.staticfile.org/vue-resource/1.5.1/vue-resource.min.js"></script>
-<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>-->
 <script src="js/main.js"></script>
 </body>
 

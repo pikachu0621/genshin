@@ -41,6 +41,9 @@ main {
     position: fixed;
     height: 100vh;
     width: 100vw;
+    text-align: center;
+    color: #acacac;
+    font-size: 12px;
     background-color: rgba(255, 255, 255, 0.94);
 }
 .footer-root-min {
