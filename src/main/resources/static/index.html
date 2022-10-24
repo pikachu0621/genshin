@@ -238,7 +238,7 @@
 	</main>
 	
 	<footer :class="footerClassMinType ? 'footer-min mui-content' : 'footer-max mui-content'">
-		<div class="footer_root_min_mask" v-show="footerClassMinType"><br>米游社自动签到<br>{{version}}</div>
+		<div class="footer_root_min_mask" v-show="footerClassMinType"></div>
 		<div id="footer_root"
 			 :class="footerClassMinType ? 'footer-root-min' : 'footer-root-max'">
 			<el-row>
@@ -343,7 +343,7 @@
 								style="margin-top: 20px">
 							<el-card shadow="hover" class="el-card-layout">
 								<b>交流群</b><br><br>
-								xxxx-xxxx-xxx，作者：pkpk。
+								xxxx-xxxx-xxx，作者：pkpk，版本：{{version}}。
 							</el-card>
 						</el-col>
 					</el-row>

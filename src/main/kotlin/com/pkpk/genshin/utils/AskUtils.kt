@@ -133,11 +133,11 @@ object AskUtils {
     fun postBbsSign(askInfoData: AskInfoData<PostBbsSignData>): JsonMiHoYoBack<PointsData>? {
         val gameKeyData = getListGameKeyData(2) ?: return null
         // log.info("------------ ${getHeaders(askInfoData)}    ${confData.globals.url_bbs_sign}   ${PostBbsSignData("${gameKeyData.id}")}")
+        askInfoData.sinData = PostBbsSignData("${gameKeyData.id}")
         return postUrl(
             confData.globals.url_bbs_sign,
             askInfoData.sinData!!,
             getHeaders(askInfoData.apply {
-                sinData = PostBbsSignData("${gameKeyData.id}")
                 type = AskInfoType.BBS_SIGN
             }).apply {
                 // log.info(mapper.writeValueAsString(values))

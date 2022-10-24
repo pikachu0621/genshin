@@ -81,12 +81,19 @@ class GenshinSignTask {
     fun startGenshinSignTask() {
         log.info("=========== 开始任务 ===========")
 
-        userMapper ?: return log.error("userMapper null")
+        userMapper ?: let {
+            log.error("userMapper null")
+            log.info("=========== 结束任务 ===========")
+            return
+        }
 
-        recordMapper ?: return log.error("recordMapper null")
+        recordMapper ?: let {
+            log.error("recordMapper null")
+            log.info("=========== 结束任务 ===========")
+            return
+        }
 
         val userList = userMapper.selectList(null)
-
         if (userList == null || userList.isEmpty()) {
             log.error("没有待执行用户")
             log.info("=========== 结束任务 ===========")
@@ -102,11 +109,14 @@ class GenshinSignTask {
         }
 
         userList.forEach {
+            log.info("")
+            log.info("---------> 开始${it.uid} <---------")
             val recordModer = RecordModer(it.uid)
             recordMapper.insert(recordModer)
 
             if (it.isBoolLock) {
                 putSqlErrMsg(recordModer, "已拉黑！")
+                log.info("---------> [all] 已拉黑！")
                 return
             }
 
@@ -114,6 +124,8 @@ class GenshinSignTask {
             startGameRewardTask(it, recordModer)
             // bbs  sign
             startBbsRewardTask(it, recordModer)
+            log.info("---------> 结束${it.uid} <---------")
+            log.info("")
         }
 
         log.info("=========== 结束任务 ===========")
@@ -130,11 +142,13 @@ class GenshinSignTask {
 
         if (!user.isBoolCToken) {
             putGameSqlErrMsg(record, "0 - ctoken 已失效！")
+            log.info("---------> [game] ctoken 已失效！")
             return
         }
 
         if (user.isBoolVCode) {
             putGameSqlErrMsg(record, "已触发验证码！")
+            log.info("---------> [game] 已触发验证码！")
             return
         }
 
@@ -147,6 +161,7 @@ class GenshinSignTask {
         )
         val userSignInfo = AskUtils.getUserSignInfo(askInfoData) ?: let {
             putGameSqlErrMsg(record, "网络错误！")
+            log.info("---------> [game] getUserSignInfo 获取用户签到信息 网络错误！")
             return
         }
         // 防止风控  暂停
@@ -157,16 +172,19 @@ class GenshinSignTask {
             user.isBoolCToken = false
             userMapper.updateById(user)
             putGameSqlErrMsg(record, "1 - ctoken 已失效！")
+            log.info("---------> [game] retcode != 0 ctoken 已失效！")
             return
         }
         if (userSignInfo.data!!.is_sign) {
             putGameSqlErrMsg(record, "你已手动签到！")
+            log.info("---------> [game] 已手动签到！")
             return
         }
         // userSignInfo.data!!
         // 签到
         val postUserSignIn = AskUtils.postUserSignIn(askInfoData) ?: let {
             putGameSqlErrMsg(record, "网络错误！")
+            log.info("---------> [game] postUserSignIn 网络错误！")
             return
         }
         // log.info("$postUserSignIn")
@@ -176,6 +194,7 @@ class GenshinSignTask {
 
         if (postUserSignIn.data == null || postUserSignIn.retcode != 0) {
             putGameSqlErrMsg(record, "签到失败！")
+            log.info("---------> [game] retcode != 0 签到失败！")
             return
         }
 
@@ -183,6 +202,7 @@ class GenshinSignTask {
             user.isBoolVCode = true
             userMapper.updateById(user)
             putGameSqlErrMsg(record, "触发验证码！")
+            log.info("---------> [game] postUserSignIn.data.success != 0 触发验证码！")
             return
         }
 
@@ -197,6 +217,7 @@ class GenshinSignTask {
             quantityRecord = signAwards!!.data!!.awards[userSignInfo.data.total_sign_day].cnt
         }
         putGameSqlOkMsg(record, nameRecord, quantityRecord)
+        log.info("---------> [game] 原神每日签到完成！")
     }
 
 
@@ -207,13 +228,15 @@ class GenshinSignTask {
         recordMapper!!
         userMapper!!
 
+        user.sToken ?: let {
+            putBbsSqlErrMsg(record, "无 stoken 米游社不进行签到")
+            log.info("---------> [bbs] 无 stoken 米游社不进行签到")
+            return
+        }
 
         if (!user.isBoolSToken) {
             putBbsSqlErrMsg(record, "00 - stoken 已失效！")
-            return
-        }
-        user.sToken ?: let {
-            putBbsSqlErrMsg(record, "无 stoken 米游社不进行签到")
+            log.info("---------> [bbs] stoken 已失效！")
             return
         }
 
@@ -236,16 +259,17 @@ class GenshinSignTask {
         )
 
 
-
         // 获取帖子列表
         postList ?: let {
             postList = AskUtils.getBbsForumPostList() ?: let {
                 putBbsSqlErrMsg(record, "帖子-网络错误！")
+                log.info("---------> [bbs] 获取帖子-网络错误！")
                 return
             }
             if (postList!!.retcode != 0) {
                 postList = null
                 putBbsSqlErrMsg(record, "帖子获取失败！")
+                log.info("---------> [bbs] 获取帖子-帖子获取失败！")
                 return
             }
         }
@@ -255,6 +279,7 @@ class GenshinSignTask {
 
         val bbsTaskList = AskUtils.getBbsTaskList(askInfoData) ?: let {
             putBbsSqlErrMsg(record, "任务列表-网络错误！")
+            log.info("---------> [bbs] 任务列表-网络错误！")
             return
         }
         // log.info("$bbsTaskList")
@@ -262,6 +287,7 @@ class GenshinSignTask {
             user.isBoolSToken = false
             userMapper.updateById(user)
             putBbsSqlErrMsg(record, "01 - stoken 已失效！")
+            log.info("---------> [bbs] stoken 已失效！")
             return
         }
 
@@ -269,6 +295,7 @@ class GenshinSignTask {
 
         if (bbsTaskList.data.can_get_points <= 0) {
             putBbsSqlErrMsg(record, "今日任务你已手动全部完成！")
+            log.info("---------> [bbs] 今日任务已手动全部完成！")
             return
         }
 
@@ -276,15 +303,18 @@ class GenshinSignTask {
         run {
             val taskSignState = getBbsUserTaskStateByMissionId(bbsTaskList.data, BbsTaskType.TASK_SIGN)
             if (taskSignState == null || taskSignState.process != 1) {
-                val postBbsSign = AskUtils.postBbsSign(AskInfoData(
-                    user.uuid,
-                    user.accountId,
-                    user.sToken,
-                    user.cookieToken,
-                    null,
-                ))
+                val postBbsSign = AskUtils.postBbsSign(
+                    AskInfoData(
+                        user.uuid,
+                        user.accountId,
+                        user.sToken,
+                        user.cookieToken,
+                        null,
+                    )
+                )
                 if (postBbsSign?.data == null || postBbsSign.retcode != 0) {
                     putBbsSqlErrMsg(record, "签到任务失败！")
+                    log.info("---------> [bbs] 签到任务失败！")
                 } else {
                     // 根据已获取 和 未获取 计算出今日签到获取的米游币
                     bbsAward += BbsTaskType.TASK_SIGN.TASK_REWARD - (bbsTaskList.data.today_total_points - (bbsTaskList.data.already_received_points + bbsTaskList.data.can_get_points))
@@ -293,6 +323,7 @@ class GenshinSignTask {
                 }
             } else {
                 putBbsSqlErrMsg(record, "签到任务你已手动完成！")
+                log.info("---------> [bbs] 签到任务已手动完成！")
             }
 
             // 防止风控  暂停 5 ~ 8 s
@@ -311,6 +342,7 @@ class GenshinSignTask {
 
             if (taskBrowseCount == 0) {
                 putBbsSqlErrMsg(record, "浏览帖子任务你已手动完成！")
+                log.info("---------> [bbs] 浏览帖子任务已手动完成！")
                 BbsTaskType.TASK_BROWSE.TASK_OK = false
                 return@run
             }
@@ -322,10 +354,12 @@ class GenshinSignTask {
                 val bbsLook = AskUtils.getBbsLook(askInfoData.apply { sinData = randomPostList.post.post_id })
                 if (bbsLook == null) {
                     putBbsSqlErrMsg(record, "第${i}次浏览帖子--网络出错！")
+                    log.info("---------> [bbs] 第${i}次浏览帖子--网络出错！")
                     continue
                 }
                 if (bbsLook.retcode != 0) {
                     putBbsSqlErrMsg(record, "第${i}次浏览帖子--失败！")
+                    log.info("---------> [bbs] 第${i}次浏览帖子--失败！")
                     continue
                 }
                 // putBbsSqlErrMsg(record, "第${i}次浏览帖子--成功！")
@@ -352,6 +386,7 @@ class GenshinSignTask {
 
             if (taskLikeCount == 0) {
                 putBbsSqlErrMsg(record, "点赞帖子任务你已手动完成！")
+                log.info("---------> [bbs] 点赞帖子任务已手动完成！")
                 BbsTaskType.TASK_LIKE.TASK_OK = false
                 return@run
             }
@@ -370,10 +405,12 @@ class GenshinSignTask {
                 )
                 if (bbsVote == null) {
                     putBbsSqlErrMsg(record, "第${i}次点赞--网络出错！")
+                    log.info("---------> [bbs] 第${i}次点赞--网络出错！")
                     continue
                 }
                 if (bbsVote.retcode != 0) {
                     putBbsSqlErrMsg(record, "第${i}次点赞--失败！")
+                    log.info("---------> [bbs] 第${i}次点赞--失败！")
                     continue
                 }
                 // putBbsSqlErrMsg(record, "第${i}次点赞--成功！")
@@ -395,6 +432,7 @@ class GenshinSignTask {
             if (taskShareState == null || taskShareState.process != 1) {
                 val randomPostList = getRandomPostList() ?: let {
                     putBbsSqlErrMsg(record, "分享任务失败-！")
+                    log.info("---------> [bbs] 分享任务失败-！")
                     return@run
                 }
                 val getBbsShare = AskUtils.getBbsShare(askInfoData.apply {
@@ -402,6 +440,7 @@ class GenshinSignTask {
                 })
                 if (getBbsShare?.data == null || getBbsShare.retcode != 0) {
                     putBbsSqlErrMsg(record, "分享任务失败！")
+                    log.info("---------> [bbs] 分享任务失败！")
                 } else {
                     bbsAward += BbsTaskType.TASK_SHARE.TASK_REWARD
                     // putBbsSqlErrMsg(record, "签到任务成功！")
@@ -409,6 +448,7 @@ class GenshinSignTask {
                 }
             } else {
                 putBbsSqlErrMsg(record, "分享任务你已手动完成！")
+                log.info("---------> [bbs] 分享任务已手动完成！")
             }
         }
 
@@ -420,12 +460,13 @@ class GenshinSignTask {
                 BbsTaskType.TASK_SHARE.TASK_OK
             ) {
                 putBbsSqlOkMsg(record, bbsAward, "论坛任务全部完成！")
+                log.info("---------> [bbs] 论坛任务全部完成！获得米游币-${bbsAward}")
                 return
             }
-            putBbsSqlOkMsg(record, bbsAward, "论坛任务部分完成！", false)
+            log.info("---------> [bbs] 论坛任务部分完成！")
+            putBbsSqlOkMsg(record, bbsAward, "论坛任务部分完成！获得米游币-${bbsAward}", false)
         }
     }
-
 
 
     /**
@@ -497,9 +538,11 @@ class GenshinSignTask {
     /**
      * 论坛奖励签到成功
      */
-    fun putBbsSqlOkMsg(record: RecordModer,
-                       quantityRecord: Int,
-                       msg: String, isBbsOk: Boolean = true) {
+    fun putBbsSqlOkMsg(
+        record: RecordModer,
+        quantityRecord: Int,
+        msg: String, isBbsOk: Boolean = true
+    ) {
         recordMapper?.apply {
             recordMapper.updateById(record.apply {
                 bbsQuantity = quantityRecord

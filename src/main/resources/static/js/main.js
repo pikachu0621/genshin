@@ -1,7 +1,7 @@
 new Vue({
     el: '#root',
     data: {
-        version: "v1.0.5",
+        version: "v1.0.6",
         serve_url: "http://pkpk.run:8083", // pkpk.run   127.0.0.1
         element: document.documentElement,
         dialogWidth: 35,
@@ -480,7 +480,7 @@ new Vue({
                 if (this.element.clientWidth < 992) {
                     this.dialogWidth = 80
                     this.footerClassMinType = true
-                    this.minInquireTableHeight = this.element.clientHeight - 220
+                    this.minInquireTableHeight = this.element.clientHeight - 250
                 }
                 this.unbindStr = null
                 this.inquireStr = null
