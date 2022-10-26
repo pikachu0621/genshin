@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "com.pkpk.genshin"
-version = "1.0.6"
+version = "1.0.7"
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 
 repositories {

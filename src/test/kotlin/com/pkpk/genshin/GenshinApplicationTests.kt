@@ -34,7 +34,18 @@ class GenshinApplicationTests {
        /* val listGameKeyData = AskUtils.getListGameKeyData(2)
         println(listGameKeyData)*/
 
-        genshinSignTask?.startGenshinSignTask()
+        GenshinSignTask.postList ?: let {
+            GenshinSignTask.postList = AskUtils.getBbsForumPostList()
+        }
+
+        val d = arrayListOf<String>()
+        for (i in 1..4){
+            val randomPostList = GenshinSignTask.getRandomPostList(d) ?: break
+            println(randomPostList.post)
+        }
+
+
+        // genshinSignTask?.startGenshinSignTask()
     }
 
 }

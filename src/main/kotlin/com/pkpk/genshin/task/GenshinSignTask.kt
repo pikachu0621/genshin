@@ -61,13 +61,43 @@ class GenshinSignTask {
         }
 
 
-        fun getRandomPostList(): BbsPostListData.PostListData? =
-            postList?.let {
-                it.data ?: return null
+        /* fun getRandomPostList(): BbsPostListData.PostListData? =
+             postList?.let {
+                 it.data ?: return null
+                 // println("${it.data}")
+                 if (it.data.list.isEmpty()) return null
+                 return it.data.list[Random.nextInt(0, it.data.list.size)]
+             }*/
+
+        /**
+         * 去除重复的
+         */
+        fun getRandomPostList(ids: ArrayList<String>? = null): BbsPostListData.PostListData? =
+            postList?.let { dataIt ->
+                dataIt.data ?: return null
                 // println("${it.data}")
-                if (it.data.list.isEmpty()) return null
-                return it.data.list[Random.nextInt(0, it.data.list.size)]
+                if (dataIt.data.list.isEmpty()) return null
+                var postListData = dataIt.data.list[Random.nextInt(0, dataIt.data.list.size)]
+                ids?.let {
+                    if (it.size >= dataIt.data.list.size){
+                        return postListData
+                    }
+                    while (true) {
+                        var isCon = true
+                        ids.forEach { each ->
+                            if (each == postListData.post.post_id) {
+                                isCon = false
+                                return@forEach
+                            }
+                        }
+                        if (isCon) break
+                        postListData = dataIt.data.list[Random.nextInt(0, dataIt.data.list.size)]
+                    }
+                    ids.add(postListData.post.post_id)
+                }
+                return postListData
             }
+
 
     }
 
@@ -75,9 +105,9 @@ class GenshinSignTask {
     /**
      * 原神签到任务
      *
-     * 签到计划执行时间(每天00:10:00)
+     * 签到计划执行时间(每天 9:30)
      */
-    @Scheduled(cron = "0 10 0 * * ?")
+    @Scheduled(cron = "0 30 9 * * ?")
     fun startGenshinSignTask() {
         log.info("=========== 开始任务 ===========")
 
@@ -348,9 +378,10 @@ class GenshinSignTask {
             }
 
             var bbsLookOk = 0
-
+            val randomPostListId = arrayListOf<String>()
             for (i in 1..taskBrowseCount) {
-                val randomPostList = getRandomPostList() ?: continue
+                val randomPostList = getRandomPostList(randomPostListId) ?: break
+
                 val bbsLook = AskUtils.getBbsLook(askInfoData.apply { sinData = randomPostList.post.post_id })
                 if (bbsLook == null) {
                     putBbsSqlErrMsg(record, "第${i}次浏览帖子--网络出错！")
@@ -391,9 +422,9 @@ class GenshinSignTask {
                 return@run
             }
             var bbsVoteOk = 0
-
+            val randomPostListId1 =  arrayListOf<String>()
             for (i in 1..taskLikeCount) {
-                val randomPostList = getRandomPostList() ?: continue
+                val randomPostList = getRandomPostList(randomPostListId1) ?: break
                 val bbsVote = AskUtils.postBbsVote(
                     AskInfoData(
                         user.uuid,
