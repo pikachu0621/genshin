@@ -3,16 +3,16 @@
   "globals": {
 
     "#app_version": "版本号 跟ds对上",
-    "app_version": "2.38.1",
+    "app_version": "2.41.2",
 
     "#ds_game_password": " 游戏奖励 签到 ds 密码    9nQiU3AV0rJSIBWgdynfoGMGKaklfbM7(2.34.1)",
-    "ds_game_password": "yUZ3s0Sna1IrSNfk29Vo6vRapdOyqyhB",
+    "ds_game_password": "osgT0DljLarYxgebPPHJFjdaxPfoiHGt",
 
     "#ds_bbs_password": " 论坛 签到 ds 密码 （用于ds里包含要提交的内容）",
     "ds_bbs_password": "t0qEgfub6cvueAPgR5m9aQWWVciEer7v",
 
     "#ds_bbs_password2": " 论坛 点赞 ds 密码 （用于ds里不包含要提交的内容） ",
-    "ds_bbs_password2": "PVeGWIZACpxXZ1ibMVJPi9inCY4Nd4y2",
+    "ds_bbs_password2": "TsmyHpZg8gFAVKTtlPaL6YwMldzxZJxQ",
 
 
     "#act_id": " api 动作Id ",
